@@ -20,6 +20,8 @@ class ModifierAggregationTest {
                     Modifier(target = "AC", value = "-2", source = "Frightened"),
                     Modifier(target = "Attack", value = "ADV", source = "Some Advantage"),
                 ),
+                startRound = 1,
+                endRound = 4, // startRound (1) + remainingRounds (3)
             ),
         )
 
@@ -47,6 +49,8 @@ class ModifierAggregationTest {
                     Modifier(target = "AC", value = "-2", source = "A"),
                     Modifier(target = "Attack", value = "+1", source = "A"),
                 ),
+                startRound = 1,
+                endRound = null, // indefinite effect (remainingRounds is null)
             ),
             Effect(
                 id = "e2",
@@ -58,6 +62,8 @@ class ModifierAggregationTest {
                 modifiers = listOf(
                     Modifier(target = "AC", value = "+1", source = "B"),
                 ),
+                startRound = 1,
+                endRound = 3, // startRound (1) + remainingRounds (2)
             ),
         )
 

@@ -34,5 +34,20 @@ data class Effect(
     val remainingRounds: Int?,
     val type: EffectType,
     val modifiers: List<Modifier>,
+    /**
+     * The combat round when this effect was added/started.
+     * Set when the effect is created.
+     */
+    val startRound: Int,
+    /**
+     * The combat round when this effect ends (inclusive).
+     * 
+     * Rules:
+     * - If [remainingRounds] is not null (finite duration):
+     *   endRound = startRound + initialDuration
+     * - If [remainingRounds] is null (indefinite effect):
+     *   endRound = null
+     */
+    val endRound: Int?,
 )
 
