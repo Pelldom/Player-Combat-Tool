@@ -90,7 +90,7 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
     fun addGenericEffect(
         name: String,
         notes: String? = null,
-        color: EffectColor,
+        colorId: EffectColorId,
         durationRounds: Int?,
         round: Int,
     ) {
@@ -102,7 +102,7 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
             id = id,
             name = name,
             notes = notes,
-            color = color,
+            colorId = colorId,
             startRound = startRound,
             durationRounds = durationRounds,
             endRound = endRound,

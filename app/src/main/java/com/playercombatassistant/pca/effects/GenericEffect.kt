@@ -48,10 +48,11 @@ data class GenericEffect(
     val notes: String? = null,
     
     /**
-     * Color to use when displaying this effect on the round tracker bar.
-     * Uses the centralized EffectColor palette for consistency.
+     * Color ID to use when displaying this effect on the round tracker bar.
+     * Uses the centralized EffectColorId palette for consistency.
+     * Resolve to actual Color using EffectColorId.toColor() in UI.
      */
-    val color: EffectColor,
+    val colorId: EffectColorId,
     
     /**
      * The combat round when this effect was added/started.

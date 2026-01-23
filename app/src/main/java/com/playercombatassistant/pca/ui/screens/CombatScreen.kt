@@ -61,7 +61,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.playercombatassistant.pca.combat.CombatViewModel
 import com.playercombatassistant.pca.effects.Effect
-import com.playercombatassistant.pca.effects.EffectColor
+import com.playercombatassistant.pca.effects.EffectColorId
+import com.playercombatassistant.pca.effects.toColor
 import com.playercombatassistant.pca.effects.EffectType
 import com.playercombatassistant.pca.effects.EffectsViewModel
 import com.playercombatassistant.pca.effects.GameSystem
@@ -273,9 +274,9 @@ fun CombatScreen(
             sheetState = addEffectSheetState,
             colorScheme = colorScheme,
             onDismiss = { showAddEffectSheet = false },
-            onAdd = { name, duration, color, notes ->
-                val durationRounds = if (duration == -1) null else duration
-                effectsViewModel.addGenericEffect(name, notes, color, durationRounds, state.round)
+            onAdd = { name, duration, colorId, notes ->
+                val durationRounds = duration
+                effectsViewModel.addGenericEffect(name, notes, colorId, durationRounds, state.round)
                 showAddEffectSheet = false
             },
         )
@@ -962,16 +963,16 @@ private fun EffectListItem(effect: Effect) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Color indicator (left edge) - enhanced for better visibility
-            val effectColor = when (effect.type) {
-                EffectType.CONDITION -> EffectColor.ERROR
-                EffectType.TIMER -> EffectColor.PRIMARY
+            val effectColorId = when (effect.type) {
+                EffectType.CONDITION -> EffectColorId.ERROR
+                EffectType.TIMER -> EffectColorId.PRIMARY
             }
             Surface(
                 modifier = Modifier
                     .width(5.dp)
                     .height(40.dp)
                     .semantics { contentDescription = "$effectTypeLabel indicator" },
-                color = effectColor.resolveColor(colorScheme),
+                color = effectColorId.toColor(colorScheme),
                 shape = MaterialTheme.shapes.small,
             ) {}
 
@@ -1051,7 +1052,7 @@ private fun GenericEffectListItem(
     currentRound: Int,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val effectColor = genericEffect.color.resolveColor(colorScheme)
+    val effectColor = genericEffect.colorId.toColor(colorScheme)
     val remainingRounds = genericEffect.remainingRounds
     val roundsText = remainingRounds?.let { 
         if (it > 0) "$it rounds remaining" else "Expired"
@@ -1227,12 +1228,12 @@ private fun AddGenericEffectSheet(
     sheetState: androidx.compose.material3.SheetState,
     colorScheme: androidx.compose.material3.ColorScheme,
     onDismiss: () -> Unit,
-    onAdd: (String, Int, EffectColor, String?) -> Unit,
+    onAdd: (String, Int?, EffectColorId, String?) -> Unit,
 ) {
     // Form state
     var name by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var selectedColor by remember { mutableStateOf(EffectColor.PRIMARY) }
+    var selectedColor by remember { mutableStateOf(EffectColorId.PRIMARY) }
     var duration by remember { mutableStateOf(1) }
     var isIndefinite by remember { mutableStateOf(false) }
 
@@ -1319,7 +1320,7 @@ private fun AddGenericEffectSheet(
                     style = MaterialTheme.typography.labelLarge,
                 )
                 // Color palette grid
-                val colors = EffectColor.defaultPalette()
+                val colors = EffectColorId.defaultPalette()
                 val columns = 4
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (row in colors.chunked(columns)) {
@@ -1333,7 +1334,7 @@ private fun AddGenericEffectSheet(
                                         .weight(1f)
                                         .height(48.dp)
                                         .clickable { selectedColor = color },
-                                    color = color.resolveColor(colorScheme),
+                                    color = color.toColor(colorScheme),
                                     shape = MaterialTheme.shapes.medium,
                                     border = if (isSelected) {
                                         androidx.compose.foundation.BorderStroke(
@@ -1381,7 +1382,7 @@ private fun AddGenericEffectSheet(
                 onClick = {
                     val finalName = name.trim()
                     val finalNotes = notes.takeIf { it.isNotBlank() }?.trim()
-                    val finalDuration = if (isIndefinite) -1 else duration
+                    val finalDuration = if (isIndefinite) null else duration
                     onAdd(finalName, finalDuration, selectedColor, finalNotes)
                 },
                 enabled = canAdd,

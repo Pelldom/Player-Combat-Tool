@@ -16,8 +16,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.playercombatassistant.pca.effects.Effect
-import com.playercombatassistant.pca.effects.EffectColor
+import com.playercombatassistant.pca.effects.EffectColorId
 import com.playercombatassistant.pca.effects.EffectType
+import com.playercombatassistant.pca.effects.toColor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -288,16 +289,16 @@ private fun groupOverlappingEffects(effectRanges: List<EffectRange>): List<List<
 
 /**
  * Get color for an effect based on its type.
- * Uses centralized EffectColor model for consistent colors.
+ * Uses centralized EffectColorId model for consistent colors.
  * 
  * Default mapping:
  * - CONDITION -> ERROR (red)
  * - TIMER -> PRIMARY (theme color)
  */
 private fun getEffectColor(effectType: EffectType, colorScheme: androidx.compose.material3.ColorScheme): Color {
-    val effectColor = when (effectType) {
-        EffectType.CONDITION -> EffectColor.ERROR
-        EffectType.TIMER -> EffectColor.PRIMARY
+    val effectColorId = when (effectType) {
+        EffectType.CONDITION -> EffectColorId.ERROR
+        EffectType.TIMER -> EffectColorId.PRIMARY
     }
-    return effectColor.resolveColor(colorScheme)
+    return effectColorId.toColor(colorScheme)
 }
