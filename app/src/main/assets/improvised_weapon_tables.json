@@ -1,0 +1,54 @@
+{
+  "tables": [
+    {
+      "id": 1,
+      "name": "Tavern or Inn",
+      "items": [
+        {
+          "id": "tavern_broken_bottle",
+          "name": "Broken Bottle",
+          "damage": "1d4",
+          "damageType": "Slashing",
+          "handedness": "LIGHT",
+          "notes": "Shards glint; may break on crit.",
+          "rarity": "COMMON",
+          "weight": 5
+        },
+        {
+          "id": "tavern_chair_leg",
+          "name": "Chair Leg",
+          "damage": "1d6",
+          "damageType": "Bludgeoning",
+          "handedness": "ONE_HANDED",
+          "notes": "Sturdy club substitute.",
+          "rarity": "COMMON",
+          "weight": 5
+        },
+        {
+          "id": "tavern_tankard",
+          "name": "Tankard",
+          "damage": "1d4",
+          "damageType": "Bludgeoning",
+          "handedness": "LIGHT",
+          "notes": "Still sloshes ale.",
+          "rarity": "COMMON",
+          "weight": 5
+        },
+        {
+          "id": "tavern_roasted_chicken",
+          "name": "Roasted Chicken",
+          "damage": "1d3",
+          "damageType": "Bludgeoning",
+          "handedness": "LIGHT",
+          "notes": "Greasy but effective.",
+          "rarity": "COMMON",
+          "weight": 5
+        },
+        {
+          "id": "tavern_table_edge",
+          "name": "Table Edge",
+          "damage": "1d6",
+          "damageType": "Bludgeoning",
+          "handedness": "TWO_HANDED",
+          "notes": "Overhead smash.",
+          "rarity": "COMM

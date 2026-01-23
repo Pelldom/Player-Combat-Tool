@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://playercombatassistant.example/schema/improvised_tables.schema.json",
+  "title": "PCA Improvised Weapon Tables",
+  "type": "array",
+  "description": "A list of LocationTable objects. Each table is a weighted list of improvised items. This schema is display-only: no rules enforcement or validation beyond basic types.",
+  "items": { "$ref": "#/$defs/LocationTable" },
+  "$defs": {
+    "Rarity": {
+      "type": "string",
+      "description": "Informational rarity marker for display only.",
+      "enum": ["COMMON", "UNCOMMON", "RARE"]
+    },
+    "Handedness": {
+      "type": "string",
+      "description": "Display-only handedness tag. No rules interpretation.",
+      "enum": ["ONE_HANDED", "TWO_HANDED", "VERSATILE"]
+    },
+    "ImprovisedItem": {
+      "type": "object",
+      "description": "A weighted entry in a location table. Items may be duplicated across tables by repeating the same id/name/etc.",
+      "additionalProperties": false,
+      "required": ["id", "name", "description", "weight", "rarity", "damage", "damageType", "handedness"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identifier for this improvised item (used for history/reference)."
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name, e.g. \"Broken Bottle\"."
+        },
+        "description": {
+          "type": "string",
+          "description": "Longer display description. No rule enforcement."
+        },
+        "weight": {
+          "type": "integer",
+          "description": "Relative selection weight used in weighted d100 selection. Total weight does not need to equal 100.",
+          "minimum": 0
+        },
+        "rarity": {
+          "$ref": "#/$defs/Rarity"
+        },
+        "damage": {
+          "type": "string",
+          "description": "Display-only damage string (system-specific), e.g. \"1d4\"."
+        },
+        "damageType": {
+          "type": "string",
+          "description": "Display-only damage type string (system-specific), e.g. \"piercing\"."
+        },
+        "handedness": {
+          "$ref": "#/$defs/Handedness"
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Optional display-only notes, e.g. \"Fragile\"."
+        }
+      }
+    },
+    "LocationTable": {
+      "type": "object",
+      "description": "A named table of improvised items for a specific location/environment. Tables can share duplicate items by including identical ImprovisedItem objects (same id).",
+      "additionalProperties": false,
+      "required": ["id", "name", "items"],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Location id (intended range 1–30).",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name for the location table."
+        },
+        "items": {
+          "type": "array",
+          "description": "List of weighted improvised items. Duplicates allowed across tables and within a table.",
+          "items": { "$ref": "#/$defs/ImprovisedItem" }
+        }
+      }
+    }
+  }
+}
+
