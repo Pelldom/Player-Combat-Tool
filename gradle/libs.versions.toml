@@ -3,7 +3,7 @@ agp = "8.5.2"
 kotlin = "2.0.21"
 
 compileSdk = "35"
-minSdk = "26"
+minSdk = "29"  # Android 10 (API 29) - minimum supported version
 targetSdk = "35"
 
 composeBom = "2024.10.00"

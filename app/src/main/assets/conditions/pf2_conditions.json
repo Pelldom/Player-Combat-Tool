@@ -1,0 +1,290 @@
+[
+  {
+    "id": "blinded",
+    "name": "Blinded",
+    "system": "PF2",
+    "shortDescription": "You can't see. You automatically fail vision-based skill checks. You can't detect anything using vision. All creatures and objects are hidden from you if they're beyond your reach.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "senses", "combat"]
+  },
+  {
+    "id": "broken",
+    "name": "Broken",
+    "system": "PF2",
+    "shortDescription": "You're at half your maximum Hit Points or below. You take a status penalty equal to your broken value to all your checks and DCs.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "health"]
+  },
+  {
+    "id": "clumsy",
+    "name": "Clumsy",
+    "system": "PF2",
+    "shortDescription": "Your movements become clumsy and inexact. Clumsy always includes a value. You take a status penalty equal to the condition value to Dexterity-based checks and DCs, including AC, Reflex saves, ranged attack rolls, and skill checks using Acrobatics, Stealth, and Thievery.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "ability"]
+  },
+  {
+    "id": "concealed",
+    "name": "Concealed",
+    "system": "PF2",
+    "shortDescription": "While you are concealed, you're harder to see. You have a 20% chance to avoid targeted effects. You can't be flanked.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["buff", "stealth"]
+  },
+  {
+    "id": "confused",
+    "name": "Confused",
+    "system": "PF2",
+    "shortDescription": "You don't have your wits about you, and you attack wildly. You are flat-footed, you don't treat anyone as your ally, and you can't Delay, Ready, or use reactions.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "mental", "combat"]
+  },
+  {
+    "id": "controlled",
+    "name": "Controlled",
+    "system": "PF2",
+    "shortDescription": "Someone else is controlling your actions. You are still aware of your surroundings but can only take actions the controller allows you to take.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "mental", "control"]
+  },
+  {
+    "id": "dazzled",
+    "name": "Dazzled",
+    "system": "PF2",
+    "shortDescription": "Your eyes are overstimulated. You are blinded and also take a -1 status penalty to visual Perception checks.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "senses"]
+  },
+  {
+    "id": "deafened",
+    "name": "Deafened",
+    "system": "PF2",
+    "shortDescription": "You can't hear. You automatically fail sound-based and auditory checks. You can't detect anything using hearing.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "senses"]
+  },
+  {
+    "id": "doomed",
+    "name": "Doomed",
+    "system": "PF2",
+    "shortDescription": "You are unnaturally close to death. Doomed always includes a value. If you gain the doomed condition while you already have it, increase the condition value by the amount specified.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "death"]
+  },
+  {
+    "id": "drained",
+    "name": "Drained",
+    "system": "PF2",
+    "shortDescription": "Your life force has been leeched away. Drained always includes a value. You take a status penalty equal to your drained value on Constitution-based checks.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "ability", "health"]
+  },
+  {
+    "id": "dying",
+    "name": "Dying",
+    "system": "PF2",
+    "shortDescription": "You are bleeding out or otherwise at death's door. Dying always includes a value. If you gain the dying condition while you already have it, increase the condition value by the amount specified.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "death"]
+  },
+  {
+    "id": "encumbered",
+    "name": "Encumbered",
+    "system": "PF2",
+    "shortDescription": "You are carrying more weight than you can manage. While you're encumbered, you're clumsy 1 and take a 10-foot penalty to all your Speeds.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["debuff", "movement"]
+  },
+  {
+    "id": "enfeebled",
+    "name": "Enfeebled",
+    "system": "PF2",
+    "shortDescription": "You're physically weakened. Enfeebled always includes a value. You take a status penalty equal to the condition value to Strength-based rolls and DCs, including Strength-based melee attack rolls, Strength-based damage rolls, and Athletics checks.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "ability"]
+  },
+  {
+    "id": "fascinated",
+    "name": "Fascinated",
+    "system": "PF2",
+    "shortDescription": "You are compelled to focus your attention on something, distracting you from whatever else is going on around you. You take a -2 status penalty to Perception and skill checks, and you can't use actions with the concentrate trait unless they or their intended consequences are related to the subject of your fascination.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "mental"]
+  },
+  {
+    "id": "fatigued",
+    "name": "Fatigued",
+    "system": "PF2",
+    "shortDescription": "You're tired and can't summon much energy. You take a -1 status penalty to AC and saving throws. You can't use exploration activities performed while traveling, such as those on page 479.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["debuff", "fatigue"]
+  },
+  {
+    "id": "frightened",
+    "name": "Frightened",
+    "system": "PF2",
+    "shortDescription": "You're gripped by fear and struggle to control your nerves. Frightened always includes a value. You take a status penalty equal to this value to all your checks and DCs. You can't willingly place yourself in situations that would make you more frightened.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "fear", "emotion"]
+  },
+  {
+    "id": "grabbed",
+    "name": "Grabbed",
+    "system": "PF2",
+    "shortDescription": "You're held in place by another creature, giving you the flat-footed and immobilized conditions. If you're grabbed by something you're on or in, you're flat-footed but not immobilized.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "hidden",
+    "name": "Hidden",
+    "system": "PF2",
+    "shortDescription": "While you're hidden, you're undetected by all creatures who don't have precise sense of you. You can attempt to use Stealth to become hidden.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["buff", "stealth"]
+  },
+  {
+    "id": "immobilized",
+    "name": "Immobilized",
+    "system": "PF2",
+    "shortDescription": "You can't use any action with the move trait. If you're immobilized by something holding you in place and you can break free, you can spend 3 actions to attempt to break free.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "movement"]
+  },
+  {
+    "id": "invisible",
+    "name": "Invisible",
+    "system": "PF2",
+    "shortDescription": "While invisible, you can't be seen. You're undetected to everyone. Creatures can't know your location if you're invisible.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["buff", "stealth"]
+  },
+  {
+    "id": "paralyzed",
+    "name": "Paralyzed",
+    "system": "PF2",
+    "shortDescription": "You're frozen in place. You have the flat-footed condition and can't act except to Recall Knowledge and use other actions that require only your mind.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "petrified",
+    "name": "Petrified",
+    "system": "PF2",
+    "shortDescription": "You have been turned to stone. You can't act, nor can you sense anything. You become an object with a Bulk double your normal Bulk and AC 9.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "transformation"]
+  },
+  {
+    "id": "prone",
+    "name": "Prone",
+    "system": "PF2",
+    "shortDescription": "You're lying on the ground. You are flat-footed and take a -2 circumstance penalty to attack rolls. The only move actions you can use while you're prone are Crawl and Stand.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["debuff", "position", "combat"]
+  },
+  {
+    "id": "quickened",
+    "name": "Quickened",
+    "system": "PF2",
+    "shortDescription": "You're able to act faster. Quickened always includes a value. You gain a number of additional actions each turn equal to the condition value. These actions can be used only to Strike or Stride.",
+    "defaultDuration": null,
+    "defaultColorId": "primary",
+    "tags": ["buff", "combat"]
+  },
+  {
+    "id": "restrained",
+    "name": "Restrained",
+    "system": "PF2",
+    "shortDescription": "You're tied up and can barely move, or a creature has you in its clutches. You have the flat-footed and immobilized conditions, and you can't use any actions with the attack or manipulate traits except to attempt to Escape or Force Open.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "sickened",
+    "name": "Sickened",
+    "system": "PF2",
+    "shortDescription": "You feel ill. Sickened always includes a value. You take a status penalty equal to this value on all your checks and DCs. You can't willingly ingest anything.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff"]
+  },
+  {
+    "id": "slowed",
+    "name": "Slowed",
+    "system": "PF2",
+    "shortDescription": "You have fewer actions. Slowed always includes a value. When you regain your actions at the start of your turn, reduce the number of actions you regain by your slowed value.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "combat"]
+  },
+  {
+    "id": "stunned",
+    "name": "Stunned",
+    "system": "PF2",
+    "shortDescription": "You've become senseless. Stunned always includes a value. You lose your actions equal to the condition value. Stunned might also have a duration instead of a value, such as \"stunned for 1 minute.\"",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat"]
+  },
+  {
+    "id": "stupefied",
+    "name": "Stupefied",
+    "system": "PF2",
+    "shortDescription": "Your thoughts and instincts are clouded. Stupefied always includes a value. You take a status penalty equal to this value on Intelligence-, Wisdom-, and Charisma-based checks and DCs.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "ability", "mental"]
+  },
+  {
+    "id": "unconscious",
+    "name": "Unconscious",
+    "system": "PF2",
+    "shortDescription": "You're sleeping, or you've been knocked out. You can't act. You take a -4 status penalty to AC, Perception, and Reflex saves, and you have the blinded and flat-footed conditions.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat"]
+  },
+  {
+    "id": "unnoticed",
+    "name": "Unnoticed",
+    "system": "PF2",
+    "shortDescription": "When you're unnoticed by a creature, that creature has no idea you're present at all. When you're unnoticed, you're also undetected by the creature.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["buff", "stealth"]
+  },
+  {
+    "id": "wounded",
+    "name": "Wounded",
+    "system": "PF2",
+    "shortDescription": "You have been seriously injured. Wounded always includes a value. If you gain the dying condition while wounded, increase your dying condition value by your wounded value.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "health"]
+  }
+]

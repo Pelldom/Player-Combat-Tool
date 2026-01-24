@@ -1,0 +1,300 @@
+{
+  "conditions": [
+    {
+      "id": "pf1_blinded",
+      "name": "Blinded",
+      "system": "PF1",
+      "shortDescription": "Cannot see; -2 penalty to AC, lose Dex bonus to AC, -4 penalty on most Str & Dex skill checks; opponents have total concealment (50% miss chance).",
+      "modifiers": [
+        {"target": "Armor Class", "value": "-2"},
+        {"target": "Dexterity Bonus to AC", "value": "0"},
+        {"target": "Str & Dex Skill Checks", "value": "-4"},
+        {"target": "Opponents Miss Chance", "value": "50% concealment"}
+      ],
+      "source": "SRD Condition Summary (Blinded)"
+    },
+    {
+      "id": "pf1_cowering",
+      "name": "Cowering",
+      "system": "PF1",
+      "shortDescription": "Cannot take actions; -2 penalty to AC; lose Dex bonus to AC.",
+      "modifiers": [
+        {"target": "Actions", "value": "Cannot take actions"},
+        {"target": "Armor Class", "value": "-2"},
+        {"target": "Dexterity Bonus to AC", "value": "0"}
+      ],
+      "source": "SRD Condition Summary (Cowering)"
+    },
+    {
+      "id": "pf1_dazed",
+      "name": "Dazed",
+      "system": "PF1",
+      "shortDescription": "Cannot take actions; no penalty to AC.",
+      "modifiers": [
+        {"target": "Actions", "value": "Cannot take actions"}
+      ],
+      "source": "SRD Condition Summary (Dazed)"
+    },
+    {
+      "id": "pf1_dazzled",
+      "name": "Dazzled",
+      "system": "PF1",
+      "shortDescription": "-1 penalty on attack rolls and sight-based Perception checks.",
+      "modifiers": [
+        {"target": "Attack Rolls", "value": "-1"},
+        {"target": "Perception Checks (sight)", "value": "-1"}
+      ],
+      "source": "SRD Condition Summary (Dazzled)"
+    },
+    {
+      "id": "pf1_deafened",
+      "name": "Deafened",
+      "system": "PF1",
+      "shortDescription": "-4 penalty on initiative; automatic failure on Listen checks; 20% spell failure for verbal spells.",
+      "modifiers": [
+        {"target": "Initiative", "value": "-4"},
+        {"target": "Listen Checks", "value": "Automatic failure"},
+        {"target": "Spell Failure (verbal)", "value": "20%"}
+      ],
+      "source": "SRD Condition Summary (Deafened)"
+    },
+    {
+      "id": "pf1_entangled",
+      "name": "Entangled",
+      "system": "PF1",
+      "shortDescription": "-2 penalty on attack rolls; -4 penalty to Dexterity; movement impeded.",
+      "modifiers": [
+        {"target": "Attack Rolls", "value": "-2"},
+        {"target": "Dexterity", "value": "-4"},
+        {"target": "Movement", "value": "Impeded"}
+      ],
+      "source": "SRD Condition Summary (Entangled)"
+    },
+    {
+      "id": "pf1_frightened",
+      "name": "Frightened",
+      "system": "PF1",
+      "shortDescription": "Creature flees if possible; -2 penalty on attacks, saves, skills, and ability checks.",
+      "modifiers": [
+        {"target": "Attack Rolls", "value": "-2"},
+        {"target": "Saving Throws", "value": "-2"},
+        {"target": "Skill Checks", "value": "-2"},
+        {"target": "Ability Checks", "value": "-2"},
+        {"target": "Behavior", "value": "Flee if possible"}
+      ],
+      "source": "SRD Condition Summary (Frightened)"
+    },
+    {
+      "id": "pf1_flat_footed",
+      "name": "Flat-Footed",
+      "system": "PF1",
+      "shortDescription": "Lose Dexterity bonus to AC and CMD; no attacks of opportunity.",
+      "modifiers": [
+        {"target": "Dexterity Bonus to AC", "value": "0"},
+        {"target": "Combat Maneuver Defense", "value": "Lose Dex bonus"},
+        {"target": "Attacks of Opportunity", "value": "Cannot make"}
+      ],
+      "source": "SRD Condition Summary (Flat-Footed)"
+    },
+    {
+      "id": "pf1_nauseated",
+      "name": "Nauseated",
+      "system": "PF1",
+      "shortDescription": "Only one move action per turn; cannot attack or cast spells.",
+      "modifiers": [
+        {"target": "Actions", "value": "Move only"},
+        {"target": "Attack Rolls", "value": "Cannot attack"},
+        {"target": "Spellcasting", "value": "Cannot cast"}
+      ],
+      "source": "SRD Condition Summary (Nauseated)"
+    },
+    {
+      "id": "pf1_paralyzed",
+      "name": "Paralyzed",
+      "system": "PF1",
+      "shortDescription": "Str and Dex 0; helpless; mental actions only.",
+      "modifiers": [
+        {"target": "Strength", "value": "0"},
+        {"target": "Dexterity", "value": "0"},
+        {"target": "Actions", "value": "Mental only"},
+        {"target": "Helpless", "value": "Yes"}
+      ],
+      "source": "SRD Condition Summary (Paralyzed)"
+    },
+    {
+      "id": "pf1_pinned",
+      "name": "Pinned",
+      "system": "PF1",
+      "shortDescription": "Cannot move; -4 penalty to AC; lose Dex bonus to AC.",
+      "modifiers": [
+        {"target": "Movement", "value": "Cannot move"},
+        {"target": "Armor Class", "value": "-4"},
+        {"target": "Dexterity Bonus to AC", "value": "0"}
+      ],
+      "source": "SRD Condition Summary (Pinned)"
+    },
+    {
+      "id": "pf1_prone",
+      "name": "Prone",
+      "system": "PF1",
+      "shortDescription": "-4 melee attack penalty; +4 AC vs ranged; -4 AC vs melee.",
+      "modifiers": [
+        {"target": "Melee Attack Rolls", "value": "-4"},
+        {"target": "Armor Class vs Ranged", "value": "+4"},
+        {"target": "Armor Class vs Melee", "value": "-4"}
+      ],
+      "source": "SRD Condition Summary (Prone)"
+    },
+    {
+      "id": "pf1_shaken",
+      "name": "Shaken",
+      "system": "PF1",
+      "shortDescription": "-2 penalty on attacks, saves, skills, and ability checks.",
+      "modifiers": [
+        {"target": "Attack Rolls", "value": "-2"},
+        {"target": "Saving Throws", "value": "-2"},
+        {"target": "Skill Checks", "value": "-2"},
+        {"target": "Ability Checks", "value": "-2"}
+      ],
+      "source": "SRD Condition Summary (Shaken)"
+    },
+    {
+      "id": "pf1_sickened",
+      "name": "Sickened",
+      "system": "PF1",
+      "shortDescription": "-2 penalty on attacks, damage, saves, skills, and ability checks.",
+      "modifiers": [
+        {"target": "Attack Rolls", "value": "-2"},
+        {"target": "Damage Rolls", "value": "-2"},
+        {"target": "Saving Throws", "value": "-2"},
+        {"target": "Skill Checks", "value": "-2"},
+        {"target": "Ability Checks", "value": "-2"}
+      ],
+      "source": "SRD Condition Summary (Sickened)"
+    },
+    {
+      "id": "pf1_staggered",
+      "name": "Staggered",
+      "system": "PF1",
+      "shortDescription": "Can take only a move or standard action.",
+      "modifiers": [
+        {"target": "Actions", "value": "Move or standard only"}
+      ],
+      "source": "SRD Condition Summary (Staggered)"
+    },
+    {
+      "id": "pf1_stunned",
+      "name": "Stunned",
+      "system": "PF1",
+      "shortDescription": "Cannot take actions, drops everything, -2 penalty to AC, lose Dex bonus to AC.",
+      "modifiers": [
+        {"target": "Actions", "value": "Cannot take actions"},
+        {"target": "Armor Class", "value": "-2"},
+        {"target": "Dexterity Bonus to AC", "value": "0"}
+      ],
+      "source": "SRD Condition Summary (Stunned)"
+    },
+    {
+      "id": "pf1_exhausted",
+      "name": "Exhausted",
+      "system": "PF1",
+      "shortDescription": "Moves at half speed; -6 penalty to Strength and Dexterity.",  
+      "modifiers": [
+        {"target": "Movement Speed", "value": "Half"},
+        {"target": "Strength", "value": "-6"},
+        {"target": "Dexterity", "value": "-6"}
+      ],
+      "source": "SRD Condition Summary (Exhausted)"  
+    },
+    {
+      "id": "pf1_fascinated",
+      "name": "Fascinated",
+      "system": "PF1",
+      "shortDescription": "Take no actions other than paying attention; -4 penalty on reaction skill checks.",
+      "modifiers": [
+        {"target": "Actions", "value": "Pay attention only"},
+        {"target": "Reaction Skill Checks", "value": "-4"}
+      ],
+      "source": "SRD Condition Summary (Fascinated)"  
+    },
+    {
+      "id": "pf1_dying",
+      "name": "Dying",
+      "system": "PF1",
+      "shortDescription": "Unconscious and near death; cannot act; must roll each round to stabilize.",
+      "modifiers": [
+        {"target": "Actions", "value": "Cannot act"},
+        {"target": "Unconscious", "value": "Yes"}
+      ],
+      "source": "SRD Condition Summary (Dying)"  
+    },
+    {
+      "id": "pf1_confused",
+      "name": "Confused",
+      "system": "PF1",
+      "shortDescription": "Actions determined by random percentile effects; unpredictable behavior.",
+      "modifiers": [
+        {"target": "Behavior", "value": "Random actions each round"}
+      ],
+      "source": "SRD Condition Summary (Confused)"  
+    },
+    {
+      "id": "pf1_incorporeal",
+      "name": "Incorporeal",
+      "system": "PF1",
+      "shortDescription": "Immune to most physical attacks; can only be harmed by magical or special attacks.",
+      "modifiers": [
+        {"target": "Physical Damage", "value": "Immune unless magical/special"},
+        {"target": "Harm Sources", "value": "Magical/Supernatural only"}
+      ],
+      "source": "SRD Condition Summary (Incorporeal)"  
+    }
+  ],
+  "modifiers": [
+    {
+      "id": "pf1_rage",
+      "name": "Barbarian Rage",
+      "system": "PF1",
+      "effects": [
+        {"target": "Strength", "value": "+4 morale bonus"},
+        {"target": "Constitution", "value": "+4 morale bonus"},
+        {"target": "Will Saves", "value": "+2 morale bonus"},
+        {"target": "Armor Class", "value": "-2 penalty"}
+      ],
+      "source": "SRD Barbarian Rage class feature"
+    },
+    {
+      "id": "pf1_power_attack",
+      "name": "Power Attack",
+      "system": "PF1",
+      "effects": [
+        {"target": "Melee Attack Rolls", "description": "Penalty up to base attack bonus (-1 initially)"},
+        {"target": "Combat Maneuver Checks", "description": "Same penalty applied"},
+        {"target": "Melee Damage Rolls", "description": "Bonus up to twice penalty"}
+      ],
+      "source": "SRD Power Attack feat description"
+    },
+    {
+      "id": "pf1_bless",
+      "name": "Bless",
+      "system": "PF1",
+      "effects": [
+        {"target": "Attack Rolls", "value": "+1 morale bonus"},
+        {"target": "Saving Throws vs Fear", "value": "+1 morale bonus"}
+      ],
+      "source": "SRD Bless spell effect"
+    },
+    {
+      "id": "pf1_haste",
+      "name": "Haste",
+      "system": "PF1",
+      "effects": [
+        {"target": "Attack Rolls", "value": "+1 bonus"},
+        {"target": "Armor Class", "value": "+1 dodge bonus"},
+        {"target": "Reflex Saves", "value": "+1 bonus"},
+        {"target": "Extra Attacks", "value": "One extra attack on full attack"}
+      ],
+      "source": "SRD Haste spell effect"
+    }
+  ]
+}

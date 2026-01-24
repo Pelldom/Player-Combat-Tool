@@ -13,292 +13,227 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.playercombatassistant.pca.effects.Effect
-import com.playercombatassistant.pca.effects.EffectColorId
-import com.playercombatassistant.pca.effects.EffectType
+import com.playercombatassistant.pca.effects.GenericEffect
 import com.playercombatassistant.pca.effects.toColor
 import kotlin.math.max
 import kotlin.math.min
 
 /**
- * A vertical bar that displays combat rounds with effect spans.
+ * A vertical bar that displays combat rounds with tick marks.
  *
  * Features:
- * - One tick per round (within visible window)
- * - Highlights current round
- * - Displays a sliding window of rounds
- * - Draws colored spans for effects across rounds
- *
- * Constraints:
- * - No text labels inside the bar
- * - Colors come from effect definitions (EffectType)
+ * - Sliding window of rounds based on current round
+ * - Visible rounds: from (currentRound - 2) to (currentRound + 7)
+ * - Does not render rounds < 1
+ * - Even spacing between rounds
+ * - Current round visually emphasized
  */
 @Composable
 fun RoundTrackerBar(
-    modifier: Modifier = Modifier,
     currentRound: Int,
-    activeEffects: List<Effect>,
-    /**
-     * The minimum round to display (inclusive).
-     * If null, automatically calculates based on effects and current round.
-     */
-    minRound: Int? = null,
-    /**
-     * The maximum round to display (inclusive).
-     * If null, automatically calculates based on effects and current round.
-     */
-    maxRound: Int? = null,
-    /**
-     * Width of the bar.
-     */
-    barWidth: Dp = 48.dp,
-    /**
-     * Width of each round tick.
-     */
-    tickWidth: Dp = 4.dp,
+    effects: List<GenericEffect>,
+    modifier: Modifier = Modifier,
 ) {
-    // Calculate visible round range (sliding window)
-    val visibleMinRound = minRound ?: calculateMinRound(currentRound, activeEffects)
-    val visibleMaxRound = maxRound ?: calculateMaxRound(currentRound, activeEffects)
-    val visibleRoundCount = visibleMaxRound - visibleMinRound + 1
-
     val colorScheme = MaterialTheme.colorScheme
     val isDark = isSystemInDarkTheme()
-
+    
+    // Calculate visible round range (sliding window)
+    val minRound = maxOf(1, currentRound - 2)
+    val maxRound = currentRound + 7
+    val visibleRounds = (minRound..maxRound).toList()
+    val totalVisibleRounds = visibleRounds.size
+    
     Canvas(
         modifier = modifier
-            .width(barWidth)
+            .width(48.dp)
             .fillMaxHeight()
             .semantics {
-                contentDescription = "Round tracker: Current round $currentRound, ${activeEffects.size} active effects"
+                contentDescription = "Round tracker: Current round $currentRound, showing rounds $minRound to $maxRound"
             },
     ) {
         val canvasHeight = size.height
         val canvasWidth = size.width
-        val tickWidthPx = tickWidth.toPx()
-
-        // Calculate spacing between ticks
-        val tickSpacing = if (visibleRoundCount > 1) {
-            (canvasHeight - tickWidthPx) / (visibleRoundCount - 1)
-        } else {
-            0f
-        }
-
-        // Draw effect spans first (behind ticks)
-        // Group effects by overlapping ranges to handle stacking
-        val effectRanges = activeEffects.mapNotNull { effect ->
-            val effectStartRound = effect.startRound
-            val effectEndRound = effect.effectEndRound(visibleMaxRound)
-            
-            if (effectEndRound != null && effectEndRound >= visibleMinRound && effectStartRound <= visibleMaxRound) {
-                val drawStartRound = max(effectStartRound, visibleMinRound)
-                val drawEndRound = min(effectEndRound, visibleMaxRound)
-                EffectRange(effect, drawStartRound, drawEndRound, false)
-            } else if (effect.endRound == null && effect.remainingRounds == null && effectStartRound <= visibleMaxRound) {
-                val drawStartRound = max(effectStartRound, visibleMinRound)
-                EffectRange(effect, drawStartRound, visibleMaxRound, true)
-            } else {
-                null
-            }
-        }
-
-        // Draw effects with offset for overlapping ones
-        val overlappingGroups = groupOverlappingEffects(effectRanges)
-        for ((groupIndex, group) in overlappingGroups.withIndex()) {
-            for ((effectIndex, effectRange) in group.withIndex()) {
-                val startY = roundToY(effectRange.startRound, visibleMinRound, tickSpacing, tickWidthPx, canvasHeight)
-                val endY = if (effectRange.isIndefinite) {
-                    canvasHeight
-                } else {
-                    roundToY(effectRange.endRound, visibleMinRound, tickSpacing, tickWidthPx, canvasHeight)
-                }
-
-                // Offset overlapping effects horizontally for visibility
-                val offsetX = if (group.size > 1) {
-                    (effectIndex * (canvasWidth * 0.15f)).coerceAtMost(canvasWidth * 0.4f)
-                } else {
-                    0f
-                }
-                val effectWidth = if (group.size > 1) canvasWidth * 0.6f else canvasWidth
-
-                val effectColor = getEffectColor(effectRange.effect.type, colorScheme)
-                
-                // Draw effect span with better contrast
-                val fillAlpha = if (isDark) 0.4f else 0.25f
-                drawRect(
-                    color = effectColor.copy(alpha = fillAlpha),
-                    topLeft = Offset(x = offsetX, y = startY),
-                    size = Size(width = effectWidth, height = endY - startY),
-                )
-
-                // Draw effect border with better visibility
-                val borderWidth = if (group.size > 1) 1.5f.dp.toPx() else 1.dp.toPx()
-                drawRect(
-                    color = effectColor,
-                    topLeft = Offset(x = offsetX, y = startY),
-                    size = Size(width = effectWidth, height = endY - startY),
-                    style = Stroke(width = borderWidth),
-                )
-            }
-        }
-
-        // Draw background for better contrast
+        
+        // Draw subtle background
         drawRect(
-            color = colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            color = colorScheme.surfaceVariant.copy(alpha = if (isDark) 0.3f else 0.2f),
             topLeft = Offset.Zero,
             size = Size(width = canvasWidth, height = canvasHeight),
         )
-
-        // Draw round ticks
-        for (round in visibleMinRound..visibleMaxRound) {
-            val y = roundToY(round, visibleMinRound, tickSpacing, tickWidthPx, canvasHeight)
-            val isCurrentRound = round == currentRound
-
-            // Draw tick with better contrast
-            val tickColor = if (isCurrentRound) {
-                colorScheme.primary
+        
+        // Calculate spacing between ticks
+        val tickWidth = 4.dp.toPx()
+        val tickSpacing = if (totalVisibleRounds > 1) {
+            (canvasHeight - tickWidth) / (totalVisibleRounds - 1)
+        } else {
+            0f
+        }
+        
+        // Helper function to convert round number to Y position
+        fun roundToY(round: Int): Float {
+            val index = visibleRounds.indexOf(round)
+            if (index < 0) return -1f // Round not in visible window
+            return if (index == 0) {
+                0f
             } else {
-                // Use onSurface with better opacity for contrast
-                colorScheme.onSurface.copy(alpha = if (isDark) 0.6f else 0.4f)
+                index * tickSpacing
+            }.coerceIn(0f, canvasHeight - tickWidth)
+        }
+        
+        // Filter effects that overlap with visible window
+        val overlappingEffects = effects.filter { effect ->
+            val effectEnd = effect.endRound ?: maxRound // Indefinite effects extend to maxRound
+            effect.startRound <= maxRound && effectEnd >= minRound
+        }
+        
+        // Group overlapping effects for horizontal offset
+        val effectGroups = groupOverlappingEffects(overlappingEffects, minRound, maxRound)
+        
+        // Draw effect spans (behind ticks)
+        val effectBarWidth = canvasWidth * 0.6f // Use 60% of width for effects
+        
+        effectGroups.forEach { group ->
+            val maxOverlaps = group.size
+            val effectSpacing = if (maxOverlaps > 1) {
+                effectBarWidth / maxOverlaps
+            } else {
+                effectBarWidth
             }
-
-            val currentTickWidth = if (isCurrentRound) tickWidthPx * 1.5f else tickWidthPx
-            val currentTickHeight = if (isCurrentRound) tickWidthPx * 1.5f else tickWidthPx
-
-            drawRect(
-                color = tickColor,
-                topLeft = Offset(x = canvasWidth - currentTickWidth, y = y),
-                size = Size(width = currentTickWidth, height = currentTickHeight),
-            )
-
-            // Highlight current round with a more prominent indicator
+            
+            group.forEachIndexed { groupIndex, effect ->
+                val effectStart = max(effect.startRound, minRound)
+                val effectEnd = effect.endRound?.let { min(it, maxRound) } ?: maxRound
+                
+                val startY = roundToY(effectStart)
+                val endY = roundToY(effectEnd)
+                
+                if (startY >= 0f && endY >= 0f) {
+                    val offsetX = if (maxOverlaps > 1) {
+                        groupIndex * effectSpacing
+                    } else {
+                        0f
+                    }
+                    
+                    val effectColor = effect.colorId.toColor(colorScheme)
+                    
+                    // Adjust alpha for better contrast in light/dark mode
+                    val fillAlpha = if (isDark) 0.4f else 0.25f
+                    val borderAlpha = if (isDark) 0.9f else 0.8f
+                    
+                    // Draw effect span with semi-transparent fill
+                    drawRect(
+                        color = effectColor.copy(alpha = fillAlpha),
+                        topLeft = Offset(x = offsetX, y = startY),
+                        size = Size(width = effectSpacing, height = endY - startY),
+                    )
+                    
+                    // Draw effect border with better visibility
+                    drawRect(
+                        color = effectColor.copy(alpha = borderAlpha),
+                        topLeft = Offset(x = offsetX, y = startY),
+                        size = Size(width = effectSpacing, height = endY - startY),
+                        style = Stroke(width = 1.5f.dp.toPx()),
+                    )
+                }
+            }
+        }
+        
+        // Draw round ticks (on top of effects)
+        visibleRounds.forEachIndexed { index, round ->
+            val y = if (index == 0) {
+                0f
+            } else {
+                index * tickSpacing
+            }.coerceIn(0f, canvasHeight - tickWidth)
+            
+            val isCurrentRound = round == currentRound
+            
             if (isCurrentRound) {
-                // Draw full-width highlight
+                // Draw background highlight for current round
+                val highlightHeight = tickWidth * 2.5f
+                val highlightY = (y - (highlightHeight - tickWidth) / 2).coerceAtLeast(0f)
                 drawRect(
-                    color = colorScheme.primaryContainer.copy(alpha = if (isDark) 0.4f else 0.3f),
-                    topLeft = Offset(x = 0f, y = y),
-                    size = Size(width = canvasWidth, height = currentTickHeight),
+                    color = colorScheme.primaryContainer.copy(alpha = if (isDark) 0.5f else 0.4f),
+                    topLeft = Offset(x = 0f, y = highlightY),
+                    size = Size(width = canvasWidth, height = highlightHeight.coerceAtMost(canvasHeight - highlightY)),
                 )
-                // Draw accent line
+                
+                // Draw accent line for current round
                 drawRect(
                     color = colorScheme.primary,
                     topLeft = Offset(x = 0f, y = y),
-                    size = Size(width = 2.dp.toPx(), height = currentTickHeight),
+                    size = Size(width = 2.dp.toPx(), height = tickWidth * 1.5f),
                 )
             }
-        }
-    }
-}
-
-/**
- * Calculate the Y position for a given round.
- */
-private fun roundToY(
-    round: Int,
-    minRound: Int,
-    tickSpacing: Float,
-    tickWidth: Float,
-    canvasHeight: Float,
-): Float {
-    val roundIndex = round - minRound
-    return if (roundIndex == 0) {
-        0f
-    } else {
-        roundIndex * tickSpacing
-    }.coerceIn(0f, canvasHeight - tickWidth)
-}
-
-/**
- * Get the effective end round for an effect (clamped to visible max if indefinite).
- */
-private fun Effect.effectEndRound(visibleMaxRound: Int): Int? {
-    return endRound ?: if (remainingRounds == null) {
-        // Indefinite effect - use visible max as a reasonable display limit for display
-        visibleMaxRound
-    } else {
-        // Calculate from startRound + remainingRounds if endRound wasn't set
-        startRound + remainingRounds
-    }
-}
-
-/**
- * Calculate minimum visible round based on current round and effects.
- */
-private fun calculateMinRound(currentRound: Int, effects: List<Effect>): Int {
-    val effectMinRound = effects.minOfOrNull { it.startRound } ?: currentRound
-    // Show at least 5 rounds before current, or start from round 1
-    return max(1, min(effectMinRound, currentRound - 5))
-}
-
-/**
- * Calculate maximum visible round based on current round and effects.
- */
-private fun calculateMaxRound(currentRound: Int, effects: List<Effect>): Int {
-    val effectMaxRound = effects.maxOfOrNull { effect ->
-        effect.endRound ?: effect.startRound + (effect.remainingRounds ?: 10)
-    } ?: currentRound
-    // Show at least 5 rounds after current, or up to the furthest effect
-    return max(currentRound + 5, effectMaxRound)
-}
-
-/**
- * Data class to represent an effect's visual range.
- */
-private data class EffectRange(
-    val effect: Effect,
-    val startRound: Int,
-    val endRound: Int,
-    val isIndefinite: Boolean,
-)
-
-/**
- * Group overlapping effects together for visual stacking.
- */
-private fun groupOverlappingEffects(effectRanges: List<EffectRange>): List<List<EffectRange>> {
-    if (effectRanges.isEmpty()) return emptyList()
-    
-    val groups = mutableListOf<List<EffectRange>>()
-    val sorted = effectRanges.sortedBy { it.startRound }
-    
-    var currentGroup = mutableListOf<EffectRange>()
-    for (range in sorted) {
-        if (currentGroup.isEmpty()) {
-            currentGroup.add(range)
-        } else {
-            // Check if this range overlaps with any in current group
-            val overlaps = currentGroup.any { existing ->
-                range.startRound <= existing.endRound && range.endRound >= existing.startRound
+            
+            // Tick colors with better contrast
+            val tickColor = if (isCurrentRound) {
+                colorScheme.primary
+            } else {
+                colorScheme.onSurfaceVariant.copy(alpha = if (isDark) 0.6f else 0.5f)
             }
             
-            if (overlaps) {
-                currentGroup.add(range)
+            val tickSize = if (isCurrentRound) {
+                tickWidth * 1.8f
             } else {
-                groups.add(currentGroup)
-                currentGroup = mutableListOf(range)
+                tickWidth
             }
+            
+            // Draw tick mark
+            drawRect(
+                color = tickColor,
+                topLeft = Offset(x = canvasWidth - tickSize, y = y),
+                size = Size(width = tickSize, height = tickSize),
+            )
         }
     }
-    if (currentGroup.isNotEmpty()) {
-        groups.add(currentGroup)
+}
+
+/**
+ * Group effects that overlap in time for horizontal offset rendering.
+ * Effects that overlap are placed in the same group and offset horizontally.
+ * 
+ * Algorithm: For each effect, find all other effects that overlap with it,
+ * and group them together. Each group represents effects that need horizontal offset.
+ */
+private fun groupOverlappingEffects(
+    effects: List<GenericEffect>,
+    minRound: Int,
+    maxRound: Int,
+): List<List<GenericEffect>> {
+    if (effects.isEmpty()) return emptyList()
+    
+    val groups = mutableListOf<MutableList<GenericEffect>>()
+    val processed = mutableSetOf<GenericEffect>()
+    
+    for (effect in effects) {
+        if (processed.contains(effect)) continue
+        
+        val group = mutableListOf<GenericEffect>()
+        val effectEnd = effect.endRound ?: maxRound
+        val effectStart = effect.startRound
+        
+        // Find all effects that overlap with this effect
+        for (other in effects) {
+            if (processed.contains(other)) continue
+            
+            val otherEnd = other.endRound ?: maxRound
+            val otherStart = other.startRound
+            
+            // Check if effects overlap
+            val overlaps = effectStart <= otherEnd && effectEnd >= otherStart
+            
+            if (overlaps) {
+                group.add(other)
+                processed.add(other)
+            }
+        }
+        
+        if (group.isNotEmpty()) {
+            groups.add(group)
+        }
     }
     
     return groups
-}
-
-/**
- * Get color for an effect based on its type.
- * Uses centralized EffectColorId model for consistent colors.
- * 
- * Default mapping:
- * - CONDITION -> ERROR (red)
- * - TIMER -> PRIMARY (theme color)
- */
-private fun getEffectColor(effectType: EffectType, colorScheme: androidx.compose.material3.ColorScheme): Color {
-    val effectColorId = when (effectType) {
-        EffectType.CONDITION -> EffectColorId.ERROR
-        EffectType.TIMER -> EffectColorId.PRIMARY
-    }
-    return effectColorId.toColor(colorScheme)
 }

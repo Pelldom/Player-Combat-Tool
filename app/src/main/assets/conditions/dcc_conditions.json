@@ -1,0 +1,101 @@
+[
+  {
+    "id": "blinded",
+    "name": "Blinded",
+    "system": "DCC",
+    "shortDescription": "The character cannot see. All actions that require sight automatically fail. Attack rolls against the character gain a +2 bonus, and the character's attack rolls suffer a -4 penalty.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "senses", "combat"]
+  },
+  {
+    "id": "deafened",
+    "name": "Deafened",
+    "system": "DCC",
+    "shortDescription": "The character cannot hear. All actions that require hearing automatically fail. The character cannot use verbal spell components.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "senses"]
+  },
+  {
+    "id": "exhausted",
+    "name": "Exhausted",
+    "system": "DCC",
+    "shortDescription": "The character is physically exhausted. All ability checks, attack rolls, and saving throws suffer a -2 penalty. Movement is reduced by half.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "fatigue"]
+  },
+  {
+    "id": "frightened",
+    "name": "Frightened",
+    "system": "DCC",
+    "shortDescription": "The character is gripped by fear. The character must attempt to flee from the source of fear. If unable to flee, the character can fight but suffers a -2 penalty to all rolls.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "fear", "emotion"]
+  },
+  {
+    "id": "grappled",
+    "name": "Grappled",
+    "system": "DCC",
+    "shortDescription": "The character is being held or restrained by another creature. The character cannot move and suffers a -2 penalty to attack rolls. Breaking free requires an opposed Strength check.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "paralyzed",
+    "name": "Paralyzed",
+    "system": "DCC",
+    "shortDescription": "The character is frozen and cannot move or act. The character is helpless and can be automatically hit by melee attacks. The character can still think and perceive.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "petrified",
+    "name": "Petrified",
+    "system": "DCC",
+    "shortDescription": "The character has been turned to stone. The character is completely immobile and unaware of surroundings. The character is considered an object with AC 9.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "transformation"]
+  },
+  {
+    "id": "poisoned",
+    "name": "Poisoned",
+    "system": "DCC",
+    "shortDescription": "The character is suffering from poison. The character suffers a -2 penalty to all ability checks, attack rolls, and saving throws. The exact effects depend on the poison type.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff"]
+  },
+  {
+    "id": "prone",
+    "name": "Prone",
+    "system": "DCC",
+    "shortDescription": "The character is lying on the ground. Melee attack rolls against the character gain a +2 bonus, but ranged attack rolls suffer a -2 penalty. Standing up requires a move action.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["debuff", "position", "combat"]
+  },
+  {
+    "id": "stunned",
+    "name": "Stunned",
+    "system": "DCC",
+    "shortDescription": "The character is stunned and cannot take actions. The character drops anything held and is flat-footed. The character can attempt to recover with a Fortitude save.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat"]
+  },
+  {
+    "id": "unconscious",
+    "name": "Unconscious",
+    "system": "DCC",
+    "shortDescription": "The character is knocked out and helpless. The character cannot take any actions and is unaware of surroundings. The character is flat-footed and can be automatically hit by melee attacks.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat"]
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "bound",
+    "name": "Bound",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is tied up, handcuffed, or otherwise restrained. Bound characters can't move and suffer a -4 penalty to all actions. Breaking free requires an opposed Strength roll.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "distracted",
+    "name": "Distracted",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is distracted and suffers a -2 penalty to all trait rolls. This condition is usually temporary and ends when the distraction is removed.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "mental"]
+  },
+  {
+    "id": "entangled",
+    "name": "Entangled",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is caught in a net, vines, or similar restraint. Entangled characters can't move and suffer a -2 penalty to all actions. Breaking free requires an opposed Strength roll.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary",
+    "tags": ["debuff", "combat", "movement"]
+  },
+  {
+    "id": "fatigue",
+    "name": "Fatigue",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is tired or exhausted. Each level of Fatigue imposes a -1 penalty to all trait rolls. A character with three levels of Fatigue is Incapacitated.",
+    "defaultDuration": null,
+    "defaultColorId": "secondary_container",
+    "tags": ["debuff", "fatigue"]
+  },
+  {
+    "id": "shaken",
+    "name": "Shaken",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is shaken up and can't perform actions except to move at half pace. Shaken characters can attempt to recover with a Spirit roll at the start of their turn.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "fear", "emotion"]
+  },
+  {
+    "id": "stunned",
+    "name": "Stunned",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is stunned and can't take any actions. The character can attempt to recover with a Vigor roll at the start of their turn.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "combat"]
+  },
+  {
+    "id": "vulnerable",
+    "name": "Vulnerable",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character is vulnerable and attackers gain +2 to their attack rolls against the character. This condition is usually caused by being surprised or caught off guard.",
+    "defaultDuration": null,
+    "defaultColorId": "error_container",
+    "tags": ["debuff", "combat"]
+  },
+  {
+    "id": "wound",
+    "name": "Wound",
+    "system": "SAVAGE_WORLDS",
+    "shortDescription": "The character has suffered a wound. Each wound imposes a -1 penalty to all trait rolls. A character with three wounds is Incapacitated. Wounds require medical attention to heal.",
+    "defaultDuration": null,
+    "defaultColorId": "error",
+    "tags": ["debuff", "health"]
+  }
+]
