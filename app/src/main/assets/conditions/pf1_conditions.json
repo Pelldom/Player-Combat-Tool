@@ -11,19 +11,19 @@
         {"target": "Str & Dex Skill Checks", "value": "-4"},
         {"target": "Opponents Miss Chance", "value": "50% concealment"}
       ],
-      "source": "SRD Condition Summary (Blinded)"
+      "source": "SRD Condition Summary (Blinded)",
+      "defaultColorId": "ORANGE"
     },
     {
-      "id": "pf1_cowering",
-      "name": "Cowering",
+      "id": "pf1_confused",
+      "name": "Confused",
       "system": "PF1",
-      "shortDescription": "Cannot take actions; -2 penalty to AC; lose Dex bonus to AC.",
+      "shortDescription": "Actions determined by random percentile effects; unpredictable behavior.",
       "modifiers": [
-        {"target": "Actions", "value": "Cannot take actions"},
-        {"target": "Armor Class", "value": "-2"},
-        {"target": "Dexterity Bonus to AC", "value": "0"}
+        {"target": "Behavior", "value": "Random actions each round"}
       ],
-      "source": "SRD Condition Summary (Cowering)"
+      "source": "SRD Condition Summary (Confused)",
+      "defaultColorId": "BROWN"
     },
     {
       "id": "pf1_dazed",
@@ -33,7 +33,8 @@
       "modifiers": [
         {"target": "Actions", "value": "Cannot take actions"}
       ],
-      "source": "SRD Condition Summary (Dazed)"
+      "source": "SRD Condition Summary (Dazed)",
+      "defaultColorId": "BLUE"
     },
     {
       "id": "pf1_dazzled",
@@ -44,7 +45,8 @@
         {"target": "Attack Rolls", "value": "-1"},
         {"target": "Perception Checks (sight)", "value": "-1"}
       ],
-      "source": "SRD Condition Summary (Dazzled)"
+      "source": "SRD Condition Summary (Dazzled)",
+      "defaultColorId": "YELLOW"
     },
     {
       "id": "pf1_deafened",
@@ -56,7 +58,20 @@
         {"target": "Listen Checks", "value": "Automatic failure"},
         {"target": "Spell Failure (verbal)", "value": "20%"}
       ],
-      "source": "SRD Condition Summary (Deafened)"
+      "source": "SRD Condition Summary (Deafened)",
+      "defaultColorId": "ORANGE"
+    },
+    {
+      "id": "pf1_dying",
+      "name": "Dying",
+      "system": "PF1",
+      "shortDescription": "Unconscious and near death; cannot act; must roll each round to stabilize.",
+      "modifiers": [
+        {"target": "Actions", "value": "Cannot act"},
+        {"target": "Unconscious", "value": "Yes"}
+      ],
+      "source": "SRD Condition Summary (Dying)",
+      "defaultColorId": "RED"
     },
     {
       "id": "pf1_entangled",
@@ -68,7 +83,46 @@
         {"target": "Dexterity", "value": "-4"},
         {"target": "Movement", "value": "Impeded"}
       ],
-      "source": "SRD Condition Summary (Entangled)"
+      "source": "SRD Condition Summary (Entangled)",
+      "defaultColorId": "BROWN"
+    },
+    {
+      "id": "pf1_exhausted",
+      "name": "Exhausted",
+      "system": "PF1",
+      "shortDescription": "Moves at half speed; -6 penalty to Strength and Dexterity.",
+      "modifiers": [
+        {"target": "Movement Speed", "value": "Half"},
+        {"target": "Strength", "value": "-6"},
+        {"target": "Dexterity", "value": "-6"}
+      ],
+      "source": "SRD Condition Summary (Exhausted)",
+      "defaultColorId": "DARK_GREEN"
+    },
+    {
+      "id": "pf1_fascinated",
+      "name": "Fascinated",
+      "system": "PF1",
+      "shortDescription": "Take no actions other than paying attention; -4 penalty on reaction skill checks.",
+      "modifiers": [
+        {"target": "Actions", "value": "Pay attention only"},
+        {"target": "Reaction Skill Checks", "value": "-4"}
+      ],
+      "source": "SRD Condition Summary (Fascinated)",
+      "defaultColorId": "YELLOW"
+    },
+    {
+      "id": "pf1_flat_footed",
+      "name": "Flat-Footed",
+      "system": "PF1",
+      "shortDescription": "Lose Dexterity bonus to AC and CMD; no attacks of opportunity.",
+      "modifiers": [
+        {"target": "Dexterity Bonus to AC", "value": "0"},
+        {"target": "Combat Maneuver Defense", "value": "Lose Dex bonus"},
+        {"target": "Attacks of Opportunity", "value": "Cannot make"}
+      ],
+      "source": "SRD Condition Summary (Flat-Footed)",
+      "defaultColorId": "PURPLE"
     },
     {
       "id": "pf1_frightened",
@@ -82,19 +136,20 @@
         {"target": "Ability Checks", "value": "-2"},
         {"target": "Behavior", "value": "Flee if possible"}
       ],
-      "source": "SRD Condition Summary (Frightened)"
+      "source": "SRD Condition Summary (Frightened)",
+      "defaultColorId": "BROWN"
     },
     {
-      "id": "pf1_flat_footed",
-      "name": "Flat-Footed",
+      "id": "pf1_incorporeal",
+      "name": "Incorporeal",
       "system": "PF1",
-      "shortDescription": "Lose Dexterity bonus to AC and CMD; no attacks of opportunity.",
+      "shortDescription": "Immune to most physical attacks; can only be harmed by magical or special attacks.",
       "modifiers": [
-        {"target": "Dexterity Bonus to AC", "value": "0"},
-        {"target": "Combat Maneuver Defense", "value": "Lose Dex bonus"},
-        {"target": "Attacks of Opportunity", "value": "Cannot make"}
+        {"target": "Physical Damage", "value": "Immune unless magical/special"},
+        {"target": "Harm Sources", "value": "Magical/Supernatural only"}
       ],
-      "source": "SRD Condition Summary (Flat-Footed)"
+      "source": "SRD Condition Summary (Incorporeal)",
+      "defaultColorId": "PALE_BLUE"
     },
     {
       "id": "pf1_nauseated",
@@ -106,7 +161,8 @@
         {"target": "Attack Rolls", "value": "Cannot attack"},
         {"target": "Spellcasting", "value": "Cannot cast"}
       ],
-      "source": "SRD Condition Summary (Nauseated)"
+      "source": "SRD Condition Summary (Nauseated)",
+      "defaultColorId": "GREEN"
     },
     {
       "id": "pf1_paralyzed",
@@ -119,7 +175,8 @@
         {"target": "Actions", "value": "Mental only"},
         {"target": "Helpless", "value": "Yes"}
       ],
-      "source": "SRD Condition Summary (Paralyzed)"
+      "source": "SRD Condition Summary (Paralyzed)",
+      "defaultColorId": "RED"
     },
     {
       "id": "pf1_pinned",
@@ -131,7 +188,8 @@
         {"target": "Armor Class", "value": "-4"},
         {"target": "Dexterity Bonus to AC", "value": "0"}
       ],
-      "source": "SRD Condition Summary (Pinned)"
+      "source": "SRD Condition Summary (Pinned)",
+      "defaultColorId": "MAUVE"
     },
     {
       "id": "pf1_prone",
@@ -143,7 +201,8 @@
         {"target": "Armor Class vs Ranged", "value": "+4"},
         {"target": "Armor Class vs Melee", "value": "-4"}
       ],
-      "source": "SRD Condition Summary (Prone)"
+      "source": "SRD Condition Summary (Prone)",
+      "defaultColorId": "TEAL"
     },
     {
       "id": "pf1_shaken",
@@ -156,7 +215,8 @@
         {"target": "Skill Checks", "value": "-2"},
         {"target": "Ability Checks", "value": "-2"}
       ],
-      "source": "SRD Condition Summary (Shaken)"
+      "source": "SRD Condition Summary (Shaken)",
+      "defaultColorId": "BROWN"
     },
     {
       "id": "pf1_sickened",
@@ -170,7 +230,8 @@
         {"target": "Skill Checks", "value": "-2"},
         {"target": "Ability Checks", "value": "-2"}
       ],
-      "source": "SRD Condition Summary (Sickened)"
+      "source": "SRD Condition Summary (Sickened)",
+      "defaultColorId": "GREEN"
     },
     {
       "id": "pf1_staggered",
@@ -180,7 +241,8 @@
       "modifiers": [
         {"target": "Actions", "value": "Move or standard only"}
       ],
-      "source": "SRD Condition Summary (Staggered)"
+      "source": "SRD Condition Summary (Staggered)",
+      "defaultColorId": "PINK"
     },
     {
       "id": "pf1_stunned",
@@ -192,62 +254,8 @@
         {"target": "Armor Class", "value": "-2"},
         {"target": "Dexterity Bonus to AC", "value": "0"}
       ],
-      "source": "SRD Condition Summary (Stunned)"
-    },
-    {
-      "id": "pf1_exhausted",
-      "name": "Exhausted",
-      "system": "PF1",
-      "shortDescription": "Moves at half speed; -6 penalty to Strength and Dexterity.",  
-      "modifiers": [
-        {"target": "Movement Speed", "value": "Half"},
-        {"target": "Strength", "value": "-6"},
-        {"target": "Dexterity", "value": "-6"}
-      ],
-      "source": "SRD Condition Summary (Exhausted)"  
-    },
-    {
-      "id": "pf1_fascinated",
-      "name": "Fascinated",
-      "system": "PF1",
-      "shortDescription": "Take no actions other than paying attention; -4 penalty on reaction skill checks.",
-      "modifiers": [
-        {"target": "Actions", "value": "Pay attention only"},
-        {"target": "Reaction Skill Checks", "value": "-4"}
-      ],
-      "source": "SRD Condition Summary (Fascinated)"  
-    },
-    {
-      "id": "pf1_dying",
-      "name": "Dying",
-      "system": "PF1",
-      "shortDescription": "Unconscious and near death; cannot act; must roll each round to stabilize.",
-      "modifiers": [
-        {"target": "Actions", "value": "Cannot act"},
-        {"target": "Unconscious", "value": "Yes"}
-      ],
-      "source": "SRD Condition Summary (Dying)"  
-    },
-    {
-      "id": "pf1_confused",
-      "name": "Confused",
-      "system": "PF1",
-      "shortDescription": "Actions determined by random percentile effects; unpredictable behavior.",
-      "modifiers": [
-        {"target": "Behavior", "value": "Random actions each round"}
-      ],
-      "source": "SRD Condition Summary (Confused)"  
-    },
-    {
-      "id": "pf1_incorporeal",
-      "name": "Incorporeal",
-      "system": "PF1",
-      "shortDescription": "Immune to most physical attacks; can only be harmed by magical or special attacks.",
-      "modifiers": [
-        {"target": "Physical Damage", "value": "Immune unless magical/special"},
-        {"target": "Harm Sources", "value": "Magical/Supernatural only"}
-      ],
-      "source": "SRD Condition Summary (Incorporeal)"  
+      "source": "SRD Condition Summary (Stunned)",
+      "defaultColorId": "BLUE"
     }
   ],
   "modifiers": [

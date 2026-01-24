@@ -25,5 +25,6 @@ data class Pf1ConditionEntry(
     val system: String,
     val shortDescription: String,
     val modifiers: List<ModifierEntry>,
+    val defaultColorId: String? = null,
     val source: String? = null,
 )

@@ -171,8 +171,10 @@ class Pf1ConditionRepository(
                 }
 
                 // Create ConditionDefinition (mapping from JSON structure)
-                // Note: PF1 conditions JSON doesn't have defaultDuration, defaultColorId, or tags
-                // We'll use defaults for these fields
+                // Note: defaultDuration and tags are not in JSON; defaultColorId is optional.
+                val defaultColorId = entry.defaultColorId
+                    ?.let { mapConditionColorId(it) }
+                    ?: EffectColorId.PRIMARY
                 val condition = ConditionDefinition(
                     id = entry.id,
                     name = entry.name,
@@ -180,7 +182,7 @@ class Pf1ConditionRepository(
                     shortDescription = entry.shortDescription,
                     detailedDescription = null, // Not in JSON
                     defaultDuration = null, // Not in JSON
-                    defaultColorId = EffectColorId.PRIMARY, // Default color
+                    defaultColorId = defaultColorId,
                     tags = emptyList(), // Not in JSON
                     modifiers = validModifiers.map { ModifierEntry(target = it.target, value = it.value) },
                 )
@@ -234,5 +236,35 @@ class Pf1ConditionRepository(
 
         @Volatile
         private var cachedModifiers: List<ModifierDefinition> = emptyList()
+    }
+
+    private fun mapConditionColorId(colorName: String): EffectColorId {
+        val normalized = colorName.trim().uppercase()
+        return when (normalized) {
+            // Exact EffectColorId names
+            "PRIMARY" -> EffectColorId.PRIMARY
+            "SECONDARY" -> EffectColorId.SECONDARY
+            "TERTIARY" -> EffectColorId.TERTIARY
+            "ERROR" -> EffectColorId.ERROR
+            "PRIMARY_CONTAINER" -> EffectColorId.PRIMARY_CONTAINER
+            "SECONDARY_CONTAINER" -> EffectColorId.SECONDARY_CONTAINER
+            "TERTIARY_CONTAINER" -> EffectColorId.TERTIARY_CONTAINER
+            "ERROR_CONTAINER" -> EffectColorId.ERROR_CONTAINER
+
+            // PF1 condition color names mapped to the closest available palette
+            "BROWN" -> EffectColorId.SECONDARY_CONTAINER
+            "ORANGE" -> EffectColorId.ERROR_CONTAINER
+            "RED" -> EffectColorId.ERROR
+            "BLUE" -> EffectColorId.SECONDARY
+            "YELLOW" -> EffectColorId.TERTIARY_CONTAINER
+            "DARK_GREEN" -> EffectColorId.SECONDARY
+            "GREEN" -> EffectColorId.SECONDARY_CONTAINER
+            "PURPLE" -> EffectColorId.TERTIARY
+            "MAUVE" -> EffectColorId.TERTIARY_CONTAINER
+            "PALE_BLUE" -> EffectColorId.PRIMARY_CONTAINER
+            "TEAL" -> EffectColorId.PRIMARY_CONTAINER
+            "PINK" -> EffectColorId.TERTIARY
+            else -> EffectColorId.PRIMARY
+        }
     }
 }

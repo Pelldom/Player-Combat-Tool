@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
@@ -38,6 +39,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import com.playercombatassistant.pca.ui.components.CollapsibleContainer
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -51,6 +55,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -68,6 +73,7 @@ import com.playercombatassistant.pca.effects.EffectsViewModel
 import com.playercombatassistant.pca.effects.GameSystem
 import com.playercombatassistant.pca.effects.GenericEffect
 import com.playercombatassistant.pca.effects.ModifierAggregation
+import com.playercombatassistant.pca.effects.Pf1ConditionRepository
 import com.playercombatassistant.pca.improvised.ImprovisedItem
 import com.playercombatassistant.pca.improvised.ImprovisedWeaponResult
 import com.playercombatassistant.pca.improvised.ImprovisedWeaponViewModel
@@ -336,27 +342,50 @@ private fun CombatPhoneLayout(
                 onEndCombat = onEndCombat,
                 modifier = phoneContainerModifier,
             )
-            ImprovisedWeaponSection(
+            CollapsibleContainer(
+                title = "Improvised Weapon",
+                stateKey = "combat_improvised_weapon",
                 modifier = phoneContainerModifier,
-                collapsible = true,
-                pinControls = false,
-                currentLocationName = currentLocationName,
-                locationWasRandom = locationWasRandom,
-                lastD30Roll = lastD30Roll,
-                lastWeaponResult = lastWeaponResult,
-                weaponRollingDisabledMessage = weaponRollingDisabledMessage,
-                availableTables = availableTables,
-                onSelectLocation = onSelectLocation,
-                onRollRandomLocation = onRollRandomLocation,
-                onRollNewWeapon = onRollNewWeapon,
-            )
-            ActiveEffectsCard(
+            ) {
+                ImprovisedWeaponSection(
+                    modifier = Modifier.fillMaxWidth(),
+                    collapsible = false,
+                    pinControls = false,
+                    currentLocationName = currentLocationName,
+                    locationWasRandom = locationWasRandom,
+                    lastD30Roll = lastD30Roll,
+                    lastWeaponResult = lastWeaponResult,
+                    weaponRollingDisabledMessage = weaponRollingDisabledMessage,
+                    availableTables = availableTables,
+                    onSelectLocation = onSelectLocation,
+                    onRollRandomLocation = onRollRandomLocation,
+                    onRollNewWeapon = onRollNewWeapon,
+                )
+            }
+            CollapsibleContainer(
+                title = "Active Effects",
+                stateKey = "combat_active_effects",
                 modifier = phoneContainerModifier,
-                activeEffects = activeEffects,
-                activeGenericEffects = activeGenericEffects,
-                currentRound = round,
-                onAddGenericEffect = onAddGenericEffect,
-            )
+            ) {
+                ActiveEffectsCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    activeEffects = activeEffects,
+                    activeGenericEffects = activeGenericEffects,
+                    currentRound = round,
+                    onAddGenericEffect = onAddGenericEffect,
+                )
+            }
+            CollapsibleContainer(
+                title = "Spell Slot Tracker",
+                stateKey = "combat_spell_slot_tracker",
+                modifier = phoneContainerModifier,
+            ) {
+                Text(
+                    text = "Spell Slot tracking will be added in a future update.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (showModifierSummary) {
                 ModifierSummaryCard(
                     modifier = phoneContainerModifier,
@@ -421,32 +450,54 @@ private fun CombatTabletLayout(
                 onNextRound = onNextRound,
                 onEndCombat = onEndCombat,
             )
-            ImprovisedWeaponSection(
-                collapsible = false,
-                pinControls = true,
-                currentLocationName = currentLocationName,
-                locationWasRandom = locationWasRandom,
-                lastD30Roll = lastD30Roll,
-                lastWeaponResult = lastWeaponResult,
-                weaponRollingDisabledMessage = weaponRollingDisabledMessage,
-                availableTables = availableTables,
-                onSelectLocation = onSelectLocation,
-                onRollRandomLocation = onRollRandomLocation,
-                onRollNewWeapon = onRollNewWeapon,
-            )
+            CollapsibleContainer(
+                title = "Improvised Weapon",
+                stateKey = "combat_improvised_weapon_tablet",
+            ) {
+                ImprovisedWeaponSection(
+                    collapsible = false,
+                    pinControls = true,
+                    currentLocationName = currentLocationName,
+                    locationWasRandom = locationWasRandom,
+                    lastD30Roll = lastD30Roll,
+                    lastWeaponResult = lastWeaponResult,
+                    weaponRollingDisabledMessage = weaponRollingDisabledMessage,
+                    availableTables = availableTables,
+                    onSelectLocation = onSelectLocation,
+                    onRollRandomLocation = onRollRandomLocation,
+                    onRollNewWeapon = onRollNewWeapon,
+                )
+            }
         }
 
         Column(
             modifier = Modifier.weight(0.5f),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            ActiveEffectsCard(
-                modifier = Modifier.weight(1f),
-                activeEffects = activeEffects,
-                activeGenericEffects = activeGenericEffects,
-                currentRound = round,
-                onAddGenericEffect = onAddGenericEffect,
-            )
+            CollapsibleContainer(
+                title = "Active Effects",
+                stateKey = "combat_active_effects_tablet",
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                ActiveEffectsCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    activeEffects = activeEffects,
+                    activeGenericEffects = activeGenericEffects,
+                    currentRound = round,
+                    onAddGenericEffect = onAddGenericEffect,
+                )
+            }
+            CollapsibleContainer(
+                title = "Spell Slot Tracker",
+                stateKey = "combat_spell_slot_tracker_tablet",
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = "Spell Slot tracking will be added in a future update.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (showModifierSummary) {
                 ModifierSummaryCard(
                     modifier = Modifier.weight(1f),
@@ -918,7 +969,9 @@ private fun ActiveEffectsCard(
             } else {
                 // Scrollable list of effects (independent scrolling if needed)
                 LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(activeEffects, key = { it.id }) { effect ->
@@ -1230,6 +1283,19 @@ private fun AddGenericEffectSheet(
     onDismiss: () -> Unit,
     onAdd: (String, Int?, EffectColorId, String?) -> Unit,
 ) {
+    val context = LocalContext.current
+    val conditions = remember {
+        Pf1ConditionRepository(context).getAllConditions()
+            .sortedBy { it.name }
+    }
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabTitles = listOf(
+        "Generic Effect",
+        "Conditions",
+        "Spell Effects",
+        "Feats & Abilities",
+    )
+
     // Form state
     var name by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
@@ -1254,11 +1320,22 @@ private fun AddGenericEffectSheet(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text(
-                text = "Add Generic Effect",
+                text = "Add Effect",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
 
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title) },
+                    )
+                }
+            }
+
+            if (selectedTabIndex == 0) {
             // Name field (required)
             OutlinedTextField(
                 value = name,
@@ -1389,6 +1466,56 @@ private fun AddGenericEffectSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Add Effect")
+            }
+            } else if (selectedTabIndex == 1) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    conditions.forEach { condition ->
+                        OutlinedButton(
+                            onClick = {
+                                val conditionNotes = condition.detailedDescription
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: condition.shortDescription.takeIf { it.isNotBlank() }
+                                onAdd(
+                                    condition.name,
+                                    1,
+                                    condition.defaultColorId,
+                                    conditionNotes,
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(condition.name)
+                        }
+                    }
+                }
+            } else if (selectedTabIndex == 2) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Spell effects will be added in a future update.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "Feats and abilities will be added in a future update.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
