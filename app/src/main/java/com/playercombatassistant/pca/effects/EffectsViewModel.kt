@@ -1,9 +1,6 @@
 package com.playercombatassistant.pca.effects
 
 import android.app.Application
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,16 +31,11 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
     private val _expiredEffects = MutableStateFlow<List<Effect>>(emptyList())
     val expiredEffects: StateFlow<List<Effect>> = _expiredEffects.asStateFlow()
 
-    /**
-     * Active generic effects (system-agnostic), backed by Compose state.
-     *
-     * We intentionally avoid storing derived state (remaining rounds, endRound)
-     * on the model itself. Instead, those values are computed on demand from
-     * [GenericEffect.startRound] and [GenericEffect.durationRounds] via helper
-     * functions on the model.
-     */
-    var activeGenericEffects by mutableStateOf<List<GenericEffect>>(emptyList())
-        private set
+    private val _activeGenericEffects = MutableStateFlow<List<GenericEffect>>(emptyList())
+    val activeGenericEffects: StateFlow<List<GenericEffect>> = _activeGenericEffects.asStateFlow()
+
+    private val _expiredGenericEffects = MutableStateFlow<List<GenericEffect>>(emptyList())
+    val expiredGenericEffects: StateFlow<List<GenericEffect>> = _expiredGenericEffects.asStateFlow()
 
     private var currentRound: Int = 0
 
@@ -104,6 +96,7 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val id = UUID.randomUUID().toString()
         val startRound = round
+        val endRound = durationRounds?.let { startRound + it }
 
         val newEffect = GenericEffect(
             id = id,
@@ -112,31 +105,63 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
             colorId = colorId,
             startRound = startRound,
             durationRounds = durationRounds,
+            endRound = endRound,
+            remainingRounds = durationRounds, // Initially set to duration
         )
 
         // Update currentRound to match the provided round
         currentRound = round
 
         // Update state - this will trigger recomposition
-        activeGenericEffects = activeGenericEffects + newEffect
+        _activeGenericEffects.update { it + newEffect }
     }
 
     /**
      * Process a Next Round event for generic effects.
      *
      * Behavior:
-     * - Filters [activeGenericEffects] based on [GenericEffect.isActiveAt]
-     *   using the new [currentRound].
+     * - For each active generic effect:
+     *   - Decrement remainingRounds by 1
+     *   - If remainingRounds <= 0:
+     *     - Mark effect as expired
+     *     - Remove from active list
      *
      * Rules:
-     * - No mutation of derived state on the model
-     * - Indefinite effects (durationRounds == null) never expire automatically
+     * - Expiration occurs AFTER round advances
+     * - Indefinite effects (remainingRounds == null) are never decremented
      * - No system-specific logic
+     * - State updates trigger recomposition via StateFlow
      */
     fun onNextRound(currentRound: Int) {
         this.currentRound = currentRound
-        // Filter out any effects that are no longer active at this round
-        activeGenericEffects = activeGenericEffects.filter { it.isActiveAt(currentRound) }
+
+        val activeGeneric = mutableListOf<GenericEffect>()
+        val expiredGeneric = mutableListOf<GenericEffect>()
+
+        for (effect in _activeGenericEffects.value) {
+            val remainingRounds = effect.remainingRounds
+
+            if (remainingRounds == null) {
+                // Indefinite effect - never expires
+                activeGeneric += effect
+            } else {
+                // Decrement remainingRounds
+                val newRemainingRounds = remainingRounds - 1
+
+                // If remainingRounds <= 0, mark as expired
+                if (newRemainingRounds <= 0) {
+                    expiredGeneric += effect
+                } else {
+                    // Update effect with decremented remainingRounds
+                    val updated = effect.copy(remainingRounds = newRemainingRounds)
+                    activeGeneric += updated
+                }
+            }
+        }
+
+        // Update state - this will trigger recomposition
+        _activeGenericEffects.value = activeGeneric
+        _expiredGenericEffects.update { it + expiredGeneric }
     }
 
     /**
@@ -163,41 +188,18 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
 
         // Try to remove from generic effects if not found yet
         if (!removed) {
-            val beforeSize = activeGenericEffects.size
-            activeGenericEffects = activeGenericEffects.filterNot { it.id == effectId }
-            removed = beforeSize != activeGenericEffects.size
+            _activeGenericEffects.update { effects ->
+                val found = effects.find { it.id == effectId }
+                if (found != null) {
+                    removed = true
+                    effects - found
+                } else {
+                    effects
+                }
+            }
         }
 
         return removed
-    }
-
-    /**
-     * Update an existing generic effect.
-     *
-     * Finds the effect by ID and replaces it with the updated version.
-     * Preserves the original startRound (does not reset it).
-     *
-     * Returns true if the effect was found and updated, false otherwise.
-     */
-    fun updateGenericEffect(
-        effectId: String,
-        name: String,
-        notes: String? = null,
-        colorId: EffectColorId,
-        durationRounds: Int?,
-    ): Boolean {
-        val existing = activeGenericEffects.find { it.id == effectId } ?: return false
-        
-        val updated = existing.copy(
-            name = name,
-            notes = notes,
-            colorId = colorId,
-            durationRounds = durationRounds,
-            // Preserve startRound - don't reset it when editing
-        )
-        
-        activeGenericEffects = activeGenericEffects.map { if (it.id == effectId) updated else it }
-        return true
     }
 
     /**
@@ -239,7 +241,7 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
         _activeEffects.value = active
         _expiredEffects.update { it + expired }
 
-        // Process generic effects using onNextRound for round-based filtering
+        // Process generic effects using onNextRound for round-based ticking
         onNextRound(newRound)
     }
 
@@ -250,7 +252,8 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
     fun clearEffects() {
         _activeEffects.value = emptyList()
         _expiredEffects.value = emptyList()
-        activeGenericEffects = emptyList()
+        _activeGenericEffects.value = emptyList()
+        _expiredGenericEffects.value = emptyList()
         currentRound = 0
     }
 }

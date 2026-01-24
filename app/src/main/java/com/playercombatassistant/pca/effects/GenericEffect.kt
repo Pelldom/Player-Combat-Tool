@@ -14,19 +14,20 @@ import kotlinx.serialization.Serializable
  * **Key Characteristics:**
  * - No system-specific logic (works across all game systems)
  * - No modifiers (pure duration tracking)
- * - Pure data object (no persisted derived state)
+ * - Pure data object (no behavior, no calculations)
  * - Color-coded for visual distinction on round tracker
  *
  * **Duration Rules:**
  * - [durationRounds] is the number of rounds the effect lasts
  * - If [durationRounds] is null, the effect is indefinite
- * - [endRound] is derived as [startRound] + [durationRounds] - 1 (if durationRounds is not null)
- *   This matches condition behavior: effects expire when currentRound > endRound
- * - [endRound] is null if [durationRounds] is null (indefinite effect)
- * - Effects expire when currentRound > startRound + durationRounds - 1
+ * - [endRound] = [startRound] + [durationRounds] (if durationRounds is not null)
+ * - [endRound] = null if [durationRounds] is null (indefinite effect)
  *
- * Derived values such as remaining rounds and end round are computed at read time
- * to avoid duplicated, unstable state in the model itself.
+ * **Example Use Cases:**
+ * - "Poisoned - 3 rounds remaining"
+ * - "Blessed - indefinite"
+ * - "Custom buff - 5 rounds"
+ * - "Reminder note about environmental effect"
  */
 @Serializable
 data class GenericEffect(
@@ -67,59 +68,56 @@ data class GenericEffect(
      * - If null: effect is indefinite (no expiration)
      */
     val durationRounds: Int?,
-) {
+    
     /**
      * The combat round when this effect ends (inclusive).
-     *
-     * Derived from [startRound] and [durationRounds]:
+     * 
+     * Rules:
      * - If [durationRounds] is not null (finite duration):
-     *   endRound = startRound + durationRounds - 1
-     *   (Effect expires when currentRound > endRound, matching condition behavior)
+     *   endRound = startRound + durationRounds
      * - If [durationRounds] is null (indefinite effect):
      *   endRound = null
-     *
-     * Note: This calculation ensures effects expire at the same time as conditions
-     * that decrement remainingRounds. For example, if startRound=1 and durationRounds=3,
-     * the effect is active in rounds 1, 2, 3 and expires at round 4.
+     * 
+     * This field is calculated from [startRound] and [durationRounds],
+     * but stored for convenience and querying.
      */
-    val endRound: Int?
-        get() = durationRounds?.let { startRound + it - 1 }
-
+    val endRound: Int?,
+    
+    /**
+     * The number of rounds remaining for this effect.
+     * 
+     * Rules:
+     * - Initially set to [durationRounds] when effect is created
+     * - Decremented each round via onNextRound()
+     * - If null: effect is indefinite (never expires)
+     * - If <= 0: effect has expired and should be removed
+     */
+    val remainingRounds: Int?,
+) {
     /**
      * Check if this effect is still active at the given round.
-     *
-     * Matches condition behavior: effects expire when currentRound > startRound + durationRounds - 1
-     *
+     * 
      * Rules:
      * - Returns true if endRound is null (indefinite)
      * - Returns true if currentRound <= endRound
-     * - Returns false if currentRound > endRound (effect has expired)
+     * - Returns false if currentRound > endRound
      */
     fun isActiveAt(currentRound: Int): Boolean {
-        val end = endRound
-        return end == null || currentRound <= end
+        return endRound == null || currentRound <= endRound
     }
     
     /**
      * Calculate remaining rounds at the given current round.
-     *
-     * This matches the behavior of condition ticking where remainingRounds decrements
-     * each round. For example, if startRound=1, durationRounds=3:
-     * - Round 1: remainingRounds = 3
-     * - Round 2: remainingRounds = 2
-     * - Round 3: remainingRounds = 1
-     * - Round 4: remainingRounds = 0 (expired)
-     *
+     * 
      * Returns:
-     * - null if effect is indefinite (durationRounds is null)
-     * - 0 if the effect expires on or before [currentRound]
-     * - Positive number of rounds remaining otherwise
+     * - null if effect is indefinite (endRound is null)
+     * - 0 or positive number if effect has rounds remaining
+     * - negative number if effect has expired (should not happen in normal use)
+     * 
+     * Note: This method calculates from endRound, but [remainingRounds] field
+     * is the authoritative source that gets decremented each round.
      */
-    fun remainingRounds(currentRound: Int): Int? {
-        val duration = durationRounds ?: return null
-        // Calculate remaining: duration - (currentRound - startRound)
-        // Clamp to 0 minimum to handle expired effects
-        val elapsed = currentRound - startRound
-        return (duration - elapsed).coerceAtLeast(0)
+    fun remainingRoundsAt(currentRound: Int): Int? {
+        return endRound?.let { it - currentRound }
     }
 }
