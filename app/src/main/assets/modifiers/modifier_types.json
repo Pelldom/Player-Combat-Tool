@@ -1,0 +1,102 @@
+[
+  {
+    "id": "untyped",
+    "label": "Untyped",
+    "systems": ["PF1", "PF2", "5e", "SavageW", "DCC"]
+  },
+  {
+    "id": "alchemical",
+    "label": "Alchemical",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "ability",
+    "label": "Ability",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "armor",
+    "label": "Armor",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "circumstance",
+    "label": "Circumstance",
+    "systems": ["PF1", "PF2"]
+  },
+  {
+    "id": "competence",
+    "label": "Competence",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "deflection",
+    "label": "Deflection",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "dodge",
+    "label": "Dodge",
+    "systems": ["PF1", "PF2"]
+  },
+  {
+    "id": "enhancement",
+    "label": "Enhancement",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "insight",
+    "label": "Insight",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "luck",
+    "label": "Luck",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "morale",
+    "label": "Morale",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "naturalArmor",
+    "label": "Natural Armor",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "profane",
+    "label": "Profane",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "racial",
+    "label": "Racial",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "resistance",
+    "label": "Resistance",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "sacred",
+    "label": "Sacred",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "shield",
+    "label": "Shield",
+    "systems": ["PF1"]
+  },
+  {
+    "id": "item",
+    "label": "Item",
+    "systems": ["PF2"]
+  },
+  {
+    "id": "status",
+    "label": "Status",
+    "systems": ["PF2"]
+  }
+]

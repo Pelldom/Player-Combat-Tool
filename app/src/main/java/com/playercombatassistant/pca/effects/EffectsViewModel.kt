@@ -93,6 +93,9 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
         colorId: EffectColorId,
         durationRounds: Int?,
         round: Int,
+        modifierType: String? = null,
+        modifierTarget: ModifierTarget? = null,
+        modifierValue: Int? = null,
     ) {
         val id = UUID.randomUUID().toString()
         val startRound = round
@@ -107,6 +110,9 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
             durationRounds = durationRounds,
             endRound = endRound,
             remainingRounds = durationRounds, // Initially set to duration
+            modifierType = modifierType,
+            modifierTarget = modifierTarget,
+            modifierValue = modifierValue,
         )
 
         // Update currentRound to match the provided round

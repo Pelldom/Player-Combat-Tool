@@ -1,0 +1,24 @@
+{
+  "PF1": {
+    "rule": "typed_highest_untyped_all",
+    "description": "For Pathfinder 1e: modifiers of the same type do not stack; only the highest applies. Exceptions that stack include dodge, circumstance, and racial bonuses. Untyped modifiers always stack.",
+    "stackableTypes": ["dodge", "circumstance", "racial", "untyped"]
+  },
+  "PF2": {
+    "rule": "typed_highest_untyped_all",
+    "description": "For Pathfinder 2e: modifiers of the same type do not stack; only the highest applies. Untyped modifiers always stack.",
+    "stackableTypes": ["circumstance", "status", "item", "untyped"]
+  },
+  "5e": {
+    "rule": "sumAll",
+    "description": "For D&D 5e: no typed bonus system; all numeric modifiers sum."
+  },
+  "SavageW": {
+    "rule": "sumAll",
+    "description": "For Savage Worlds: no official typed bonus system in SRD; treat all modifiers as untyped and sum them."
+  },
+  "DCC": {
+    "rule": "sumAll",
+    "description": "For Dungeon Crawl Classics: no typed bonus system in SRD; treat all modifiers as untyped and sum them."
+  }
+}

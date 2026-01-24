@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Effect",
+  "description": "An effect with one or more modifier entries, used for conditions, generic effects, spells, feats, etc.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "modifiers"
+  ],
+  "additionalProperties": false,
+
+  "properties": {
+    "id": {
+      "description": "A unique identifier for the effect",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "name": {
+      "description": "The display name of the effect",
+      "type": "string",
+      "minLength": 1
+    },
+
+    "description": {
+      "description": "Optional descriptive text for the effect",
+      "type": "string"
+    },
+
+    "system": {
+      "description": "Which game system this effect is associated with (e.g., PF1, PF2, 5e, SavageW, DCC)",
+      "type": "string",
+      "enum": ["PF1", "PF2", "5e", "SavageW", "DCC"]
+    },
+
+    "colorId": {
+      "description": "Default color identifier for UI display (matches app color enums)",
+      "type": "string"
+    },
+
+    "modifiers": {
+      "description": "One or more modifier entries representing how this effect modifies game values",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/modifierEntry"
+      }
+    },
+
+    "durationRounds": {
+      "description": "How many rounds this effect remains active in combat",
+      "type": "integer",
+      "minimum": 1
+    },
+
+    "tags": {
+      "description": "Optional semantic tags for filtering or UI grouping",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+
+  "definitions": {
+    "modifierEntry": {
+      "description": "A single modifier with type, target, and value",
+      "type": "object",
+      "required": [
+        "modifierTarget",
+        "modifierValue"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "modifierType": {
+          "description": "The type of modifier (e.g., morale, enhancement, untyped)",
+          "type": "string"
+        },
+        "modifierTarget": {
+          "description": "What this modifier affects (e.g., Attack Rolls, Armor Class, Saving Throws)",
+          "type": "string"
+        },
+        "modifierValue": {
+          "description": "Signed integer representing how much to modify the target",
+          "type": "integer"
+        },
+        "notes": {
+          "description": "Optional text for additional context about this modifier entry",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

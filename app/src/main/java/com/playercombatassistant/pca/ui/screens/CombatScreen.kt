@@ -40,6 +40,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TabRow
 import com.playercombatassistant.pca.ui.components.CollapsibleContainer
 import androidx.compose.material3.Text
@@ -60,10 +62,14 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.util.UUID
 import com.playercombatassistant.pca.combat.CombatViewModel
 import com.playercombatassistant.pca.effects.Effect
 import com.playercombatassistant.pca.effects.EffectColorId
@@ -74,7 +80,11 @@ import com.playercombatassistant.pca.effects.GameSystem
 import com.playercombatassistant.pca.effects.GenericEffect
 import com.playercombatassistant.pca.effects.ModifierAggregation
 import com.playercombatassistant.pca.effects.Pf1ConditionRepository
+import com.playercombatassistant.pca.effects.ModifierTarget
+import com.playercombatassistant.pca.effects.getDisplayLabel
 import com.playercombatassistant.pca.improvised.ImprovisedItem
+import com.playercombatassistant.pca.modifiers.ModifierRepository
+import com.playercombatassistant.pca.modifiers.ModifierType
 import com.playercombatassistant.pca.improvised.ImprovisedWeaponResult
 import com.playercombatassistant.pca.improvised.ImprovisedWeaponViewModel
 import com.playercombatassistant.pca.improvised.LocationTable
@@ -169,6 +179,7 @@ fun CombatScreen(
                 }
             },
             onAddGenericEffect = { showAddEffectSheet = true },
+            gameSystem = settings.gameSystem,
         )
 
         WindowWidthSizeClass.Medium,
@@ -221,6 +232,7 @@ fun CombatScreen(
                 }
             },
             onAddGenericEffect = { showAddEffectSheet = true },
+            gameSystem = settings.gameSystem,
         )
         else -> CombatTabletLayout(
             modifier = rootModifier,
@@ -271,6 +283,7 @@ fun CombatScreen(
                 }
             },
             onAddGenericEffect = { showAddEffectSheet = true },
+            gameSystem = settings.gameSystem,
         )
     }
 
@@ -279,10 +292,22 @@ fun CombatScreen(
         AddGenericEffectSheet(
             sheetState = addEffectSheetState,
             colorScheme = colorScheme,
+            currentGameSystem = settings.gameSystem,
+            currentRound = state.round,
+            effectsViewModel = effectsViewModel,
             onDismiss = { showAddEffectSheet = false },
-            onAdd = { name, duration, colorId, notes ->
+            onAdd = { name, duration, colorId, notes, modifierType, modifierTarget, modifierValue ->
                 val durationRounds = duration
-                effectsViewModel.addGenericEffect(name, notes, colorId, durationRounds, state.round)
+                effectsViewModel.addGenericEffect(
+                    name = name,
+                    notes = notes,
+                    colorId = colorId,
+                    durationRounds = durationRounds,
+                    round = state.round,
+                    modifierType = modifierType,
+                    modifierTarget = modifierTarget,
+                    modifierValue = modifierValue,
+                )
                 showAddEffectSheet = false
             },
         )
@@ -315,6 +340,7 @@ private fun CombatPhoneLayout(
     onRollNewWeapon: () -> Unit,
     inCombat: Boolean,
     onAddGenericEffect: () -> Unit,
+    gameSystem: GameSystem,
 ) {
     Row(
         modifier = modifier.fillMaxSize(),
@@ -340,6 +366,9 @@ private fun CombatPhoneLayout(
                 onStartCombat = onStartCombat,
                 onNextRound = onNextRound,
                 onEndCombat = onEndCombat,
+                activeEffects = activeEffects,
+                activeGenericEffects = activeGenericEffects,
+                gameSystem = gameSystem,
                 modifier = phoneContainerModifier,
             )
             CollapsibleContainer(
@@ -431,6 +460,7 @@ private fun CombatTabletLayout(
     onRollNewWeapon: () -> Unit,
     inCombat: Boolean,
     onAddGenericEffect: () -> Unit,
+    gameSystem: GameSystem,
 ) {
     Row(
         modifier = modifier,
@@ -449,6 +479,9 @@ private fun CombatTabletLayout(
                 onStartCombat = onStartCombat,
                 onNextRound = onNextRound,
                 onEndCombat = onEndCombat,
+                activeEffects = activeEffects,
+                activeGenericEffects = activeGenericEffects,
+                gameSystem = gameSystem,
             )
             CollapsibleContainer(
                 title = "Improvised Weapon",
@@ -531,8 +564,36 @@ private fun CombatStatusAndControlsCard(
     onStartCombat: () -> Unit,
     onNextRound: () -> Unit,
     onEndCombat: () -> Unit,
+    activeEffects: List<Effect>,
+    activeGenericEffects: List<GenericEffect>,
+    gameSystem: GameSystem,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val modifierRepository = remember { ModifierRepository(context) }
+    
+    // Aggregate modifiers with stacking rules
+    val modifierTotals = remember(
+        activeEffects,
+        activeGenericEffects,
+        gameSystem,
+    ) {
+        ModifierAggregation.aggregateWithStacking(
+            activeEffects = activeEffects,
+            activeGenericEffects = activeGenericEffects,
+            gameSystem = gameSystem,
+            modifierRepository = modifierRepository,
+        )
+    }
+    
+    // Filter to only non-zero targets and format for display
+    val displayTargets = listOf(
+        "Armor Class" to (modifierTotals["Armor Class"] ?: 0),
+        "Attack Rolls" to (modifierTotals["Attack Rolls"] ?: 0),
+        "Saving Throws" to (modifierTotals["Saving Throws"] ?: 0),
+        "Skill Checks" to (modifierTotals["Skill Checks"] ?: 0),
+        "Initiative" to (modifierTotals["Initiative"] ?: 0),
+    ).filter { (_, value) -> value != 0 }
     ElevatedCard(
         modifier = modifier,
         colors = CardDefaults.elevatedCardColors(),
@@ -556,6 +617,19 @@ private fun CombatStatusAndControlsCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                
+                // Modifier totals display (single line, read-only)
+                if (displayTargets.isNotEmpty()) {
+                    Text(
+                        text = displayTargets.joinToString("   ") { (target, value) ->
+                            val sign = if (value >= 0) "+" else ""
+                            "$target $sign$value"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
             }
 
             // Controls (stacked vertically, full-width). No behavior changes—only layout + visual hierarchy.
@@ -1104,12 +1178,17 @@ private fun GenericEffectListItem(
     genericEffect: GenericEffect,
     currentRound: Int,
 ) {
+    val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
     val effectColor = genericEffect.colorId.toColor(colorScheme)
     val remainingRounds = genericEffect.remainingRounds
     val roundsText = remainingRounds?.let { 
         if (it > 0) "$it rounds remaining" else "Expired"
     } ?: "Indefinite duration"
+    
+    // Load modifier types to get labels
+    val modifierRepository = remember { ModifierRepository(context) }
+    val allModifierTypes = remember { modifierRepository.getAllModifierTypes() }
     
     Card(
         modifier = Modifier
@@ -1149,6 +1228,34 @@ private fun GenericEffectListItem(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                 )
+
+                // Modifier information (if present)
+                if (genericEffect.modifierTarget != null || genericEffect.modifierValue != null) {
+                    val modifierParts = mutableListOf<String>()
+                    if (genericEffect.modifierTarget != null) {
+                        modifierParts.add(genericEffect.modifierTarget.getDisplayLabel())
+                    }
+                    if (genericEffect.modifierValue != null) {
+                        val valueText = if (genericEffect.modifierValue >= 0) {
+                            "+${genericEffect.modifierValue}"
+                        } else {
+                            genericEffect.modifierValue.toString()
+                        }
+                        modifierParts.add(valueText)
+                    }
+                    if (genericEffect.modifierType != null) {
+                        // Try to get the label from all types, or just show the ID
+                        val typeLabel = allModifierTypes.find { it.id == genericEffect.modifierType }?.label
+                            ?: genericEffect.modifierType
+                        modifierParts.add("($typeLabel)")
+                    }
+                    Text(
+                        text = modifierParts.joinToString(" "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
 
                 // Notes (if present)
                 if (!genericEffect.notes.isNullOrBlank()) {
@@ -1280,14 +1387,25 @@ private fun ModifierSummaryUnavailableCard() {
 private fun AddGenericEffectSheet(
     sheetState: androidx.compose.material3.SheetState,
     colorScheme: androidx.compose.material3.ColorScheme,
+    currentGameSystem: GameSystem,
+    currentRound: Int,
+    effectsViewModel: EffectsViewModel,
     onDismiss: () -> Unit,
-    onAdd: (String, Int?, EffectColorId, String?) -> Unit,
+    onAdd: (String, Int?, EffectColorId, String?, String?, ModifierTarget?, Int?) -> Unit,
 ) {
     val context = LocalContext.current
     val conditions = remember {
         Pf1ConditionRepository(context).getAllConditions()
             .sortedBy { it.name }
     }
+    
+    // Load modifier types filtered by current game system
+    val modifierRepository = remember { ModifierRepository(context) }
+    val availableModifierTypes = remember(currentGameSystem) {
+        modifierRepository.getModifierTypesBySystem(currentGameSystem)
+            .sortedBy { it.label }
+    }
+    
     var selectedTabIndex by remember { mutableStateOf(0) }
     val tabTitles = listOf(
         "Generic Effect",
@@ -1302,6 +1420,12 @@ private fun AddGenericEffectSheet(
     var selectedColor by remember { mutableStateOf(EffectColorId.PRIMARY) }
     var duration by remember { mutableStateOf(1) }
     var isIndefinite by remember { mutableStateOf(false) }
+    var conditionDuration by remember { mutableStateOf(1) }
+    var selectedModifierType by remember { mutableStateOf<ModifierType?>(null) }
+    var modifierTypeDropdownExpanded by remember { mutableStateOf(false) }
+    var selectedModifierTarget by remember { mutableStateOf<ModifierTarget?>(null) }
+    var modifierTargetDropdownExpanded by remember { mutableStateOf(false) }
+    var modifierValue by remember { mutableStateOf(0) }
 
     // Validation
     val isNameValid = name.isNotBlank()
@@ -1336,6 +1460,146 @@ private fun AddGenericEffectSheet(
             }
 
             if (selectedTabIndex == 0) {
+            // Modifier fields in a horizontal layout
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // Modifier Type dropdown (optional)
+                if (availableModifierTypes.isNotEmpty()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Modifier Type",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedButton(
+                            onClick = { modifierTypeDropdownExpanded = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = selectedModifierType?.label ?: "None",
+                                maxLines = 1,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = modifierTypeDropdownExpanded,
+                            onDismissRequest = { modifierTypeDropdownExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("None (optional)") },
+                                onClick = {
+                                    selectedModifierType = null
+                                    modifierTypeDropdownExpanded = false
+                                },
+                            )
+                            for (modifierType in availableModifierTypes) {
+                                DropdownMenuItem(
+                                    text = { Text(modifierType.label) },
+                                    onClick = {
+                                        selectedModifierType = modifierType
+                                        modifierTypeDropdownExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Modifier Target dropdown (optional)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Modifier Target",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedButton(
+                        onClick = { modifierTargetDropdownExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = selectedModifierTarget?.getDisplayLabel() ?: "None",
+                            maxLines = 1,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = modifierTargetDropdownExpanded,
+                        onDismissRequest = { modifierTargetDropdownExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("None (optional)") },
+                            onClick = {
+                                selectedModifierTarget = null
+                                modifierTargetDropdownExpanded = false
+                            },
+                        )
+                        for (target in ModifierTarget.entries) {
+                            DropdownMenuItem(
+                                text = { Text(target.getDisplayLabel()) },
+                                onClick = {
+                                    selectedModifierTarget = target
+                                    modifierTargetDropdownExpanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+                
+                // Modifier Value input (optional)
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Modifier Value",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        // Display current value next to label
+                        Surface(
+                            color = colorScheme.secondaryContainer,
+                            contentColor = colorScheme.onSecondaryContainer,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Text(
+                                text = if (modifierValue >= 0) "+$modifierValue" else modifierValue.toString(),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedButton(
+                            onClick = { modifierValue = modifierValue - 1 },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("-")
+                        }
+                        Text(
+                            text = if (modifierValue >= 0) "+$modifierValue" else modifierValue.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                            textAlign = TextAlign.Center,
+                        )
+                        OutlinedButton(
+                            onClick = { modifierValue = modifierValue + 1 },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("+")
+                        }
+                    }
+                }
+            }
+            
             // Name field (required)
             OutlinedTextField(
                 value = name,
@@ -1460,7 +1724,18 @@ private fun AddGenericEffectSheet(
                     val finalName = name.trim()
                     val finalNotes = notes.takeIf { it.isNotBlank() }?.trim()
                     val finalDuration = if (isIndefinite) null else duration
-                    onAdd(finalName, finalDuration, selectedColor, finalNotes)
+                    val finalModifierType = selectedModifierType?.id
+                    val finalModifierTarget = selectedModifierTarget
+                    val finalModifierValue = if (modifierValue != 0) modifierValue else null
+                    onAdd(
+                        finalName,
+                        finalDuration,
+                        selectedColor,
+                        finalNotes,
+                        finalModifierType,
+                        finalModifierTarget,
+                        finalModifierValue,
+                    )
                 },
                 enabled = canAdd,
                 modifier = Modifier.fillMaxWidth(),
@@ -1475,18 +1750,62 @@ private fun AddGenericEffectSheet(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    Text(
+                        text = "Duration (rounds)",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedButton(
+                            onClick = { conditionDuration = (conditionDuration - 1).coerceAtLeast(1) },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("-")
+                        }
+                        Text(
+                            text = conditionDuration.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedButton(
+                            onClick = { conditionDuration = conditionDuration + 1 },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("+")
+                        }
+                    }
                     conditions.forEach { condition ->
                         OutlinedButton(
                             onClick = {
-                                val conditionNotes = condition.detailedDescription
-                                    ?.takeIf { it.isNotBlank() }
-                                    ?: condition.shortDescription.takeIf { it.isNotBlank() }
-                                onAdd(
-                                    condition.name,
-                                    1,
-                                    condition.defaultColorId,
-                                    conditionNotes,
+                                // Convert condition modifiers to Effect.Modifier format
+                                val effectModifiers = condition.modifiers.map { modEntry ->
+                                    com.playercombatassistant.pca.effects.Modifier(
+                                        target = modEntry.target,
+                                        value = modEntry.value,
+                                        source = condition.name,
+                                    )
+                                }
+                                
+                                // Create an Effect object for the condition (not GenericEffect)
+                                // This preserves all modifiers from the condition
+                                val conditionEffect = Effect(
+                                    id = UUID.randomUUID().toString(),
+                                    name = condition.name,
+                                    system = condition.system,
+                                    description = condition.shortDescription,
+                                    remainingRounds = conditionDuration,
+                                    type = EffectType.CONDITION,
+                                    modifiers = effectModifiers,
+                                    startRound = currentRound,
+                                    endRound = currentRound + conditionDuration - 1,
                                 )
+                                
+                                // Add as Effect (not GenericEffect) to preserve modifiers
+                                effectsViewModel.addEffect(currentRound, conditionEffect)
+                                onDismiss()
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {

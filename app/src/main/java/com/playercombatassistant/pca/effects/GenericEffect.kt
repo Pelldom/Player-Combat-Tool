@@ -93,6 +93,26 @@ data class GenericEffect(
      * - If <= 0: effect has expired and should be removed
      */
     val remainingRounds: Int?,
+    
+    /**
+     * Optional modifier type ID from modifier_types.json.
+     * Used to categorize the modifier for stacking rules.
+     * Example: "untyped", "circumstance", "enhancement"
+     */
+    val modifierType: String? = null,
+    
+    /**
+     * Optional modifier target specifying what aspect is being modified.
+     * Examples: Attack Rolls, Saving Throws, Armor Class, etc.
+     */
+    val modifierTarget: ModifierTarget? = null,
+    
+    /**
+     * Optional numeric modifier value.
+     * Can be positive or negative.
+     * Example: +2, -1, +5
+     */
+    val modifierValue: Int? = null,
 ) {
     /**
      * Check if this effect is still active at the given round.
