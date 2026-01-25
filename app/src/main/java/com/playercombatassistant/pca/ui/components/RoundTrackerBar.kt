@@ -13,21 +13,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.playercombatassistant.pca.effects.GenericEffect
 import com.playercombatassistant.pca.effects.toColor
 import kotlin.math.max
 import kotlin.math.min
 
 /**
- * A vertical bar that displays combat rounds with tick marks.
+ * A vertical bar that displays combat rounds with numbered labels.
  *
  * Features:
- * - Sliding window of rounds based on current round
- * - Visible rounds: from (currentRound - 2) to (currentRound + 7)
- * - Does not render rounds < 1
- * - Even spacing between rounds
- * - Current round visually emphasized
+ * - Shows a sliding window of 10 rounds based on current round
+ * - Numbered labels instead of hash marks
+ * - Denser spacing to fit 10 rounds
+ * - Current round: bold, larger, high-contrast, highlighted
+ * - Future rounds: neutral styling
+ * - Past rounds: not displayed (windowed out)
  */
 @Composable
 fun RoundTrackerBar(
@@ -37,10 +43,11 @@ fun RoundTrackerBar(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isDark = isSystemInDarkTheme()
+    val textMeasurer = rememberTextMeasurer()
     
-    // Calculate visible round range (sliding window)
-    val minRound = maxOf(1, currentRound - 2)
-    val maxRound = currentRound + 7
+    // Calculate sliding window: show currentRound through currentRound + 9 (10 rounds total)
+    val minRound = currentRound
+    val maxRound = currentRound + 9
     val visibleRounds = (minRound..maxRound).toList()
     val totalVisibleRounds = visibleRounds.size
     
@@ -49,9 +56,9 @@ fun RoundTrackerBar(
             .width(48.dp)
             .fillMaxHeight()
             .semantics {
-                contentDescription = "Round tracker: Current round $currentRound, showing rounds $minRound to $maxRound"
+                contentDescription = "Round tracker: Current round $currentRound, showing rounds $minRound through $maxRound"
             },
-    ) {
+    ) { // This lambda has DrawScope as receiver
         val canvasHeight = size.height
         val canvasWidth = size.width
         
@@ -62,28 +69,24 @@ fun RoundTrackerBar(
             size = Size(width = canvasWidth, height = canvasHeight),
         )
         
-        // Calculate spacing between ticks
-        val tickWidth = 4.dp.toPx()
-        val tickSpacing = if (totalVisibleRounds > 1) {
-            (canvasHeight - tickWidth) / (totalVisibleRounds - 1)
+        // Calculate spacing between rounds (denser to fit 10 rounds)
+        val roundSpacing = if (totalVisibleRounds > 1) {
+            canvasHeight / totalVisibleRounds
         } else {
-            0f
+            canvasHeight
         }
         
-        // Helper function to convert round number to Y position
+        // Helper function to convert round number to Y position (centered in its slot)
         fun roundToY(round: Int): Float {
             val index = visibleRounds.indexOf(round)
             if (index < 0) return -1f // Round not in visible window
-            return if (index == 0) {
-                0f
-            } else {
-                index * tickSpacing
-            }.coerceIn(0f, canvasHeight - tickWidth)
+            return (index * roundSpacing) + (roundSpacing / 2f)
         }
         
         // Filter effects that overlap with visible window
+        // Effects are visually clamped to the visible window for display purposes
         val overlappingEffects = effects.filter { effect ->
-            val effectEnd = effect.endRound ?: maxRound // Indefinite effects extend to maxRound
+            val effectEnd = effect.endRound ?: Int.MAX_VALUE // Indefinite effects extend beyond window
             effect.startRound <= maxRound && effectEnd >= minRound
         }
         
@@ -102,6 +105,7 @@ fun RoundTrackerBar(
             }
             
             group.forEachIndexed { groupIndex, effect ->
+                // Visually clamp effect spans to the visible window
                 val effectStart = max(effect.startRound, minRound)
                 val effectEnd = effect.endRound?.let { min(it, maxRound) } ?: maxRound
                 
@@ -139,52 +143,69 @@ fun RoundTrackerBar(
             }
         }
         
-        // Draw round ticks (on top of effects)
+        // Draw round numbers (on top of effects)
         visibleRounds.forEachIndexed { index, round ->
-            val y = if (index == 0) {
-                0f
-            } else {
-                index * tickSpacing
-            }.coerceIn(0f, canvasHeight - tickWidth)
+            val y = (index * roundSpacing) + (roundSpacing / 2f)
             
             val isCurrentRound = round == currentRound
+            // In a windowed view, all visible rounds are current or future (past rounds are windowed out)
+            
+            // Visual states
+            val textSize = if (isCurrentRound) {
+                14.sp
+            } else {
+                12.sp
+            }
+            
+            val textColor = when {
+                isCurrentRound -> colorScheme.primary
+                else -> colorScheme.onSurfaceVariant.copy(alpha = if (isDark) 0.7f else 0.7f)
+            }
+            
+            val fontWeight = if (isCurrentRound) {
+                FontWeight.Bold
+            } else {
+                FontWeight.Normal
+            }
             
             if (isCurrentRound) {
                 // Draw background highlight for current round
-                val highlightHeight = tickWidth * 2.5f
-                val highlightY = (y - (highlightHeight - tickWidth) / 2).coerceAtLeast(0f)
+                val highlightHeight = roundSpacing * 0.8f
+                val highlightY = y - (highlightHeight / 2f)
                 drawRect(
                     color = colorScheme.primaryContainer.copy(alpha = if (isDark) 0.5f else 0.4f),
-                    topLeft = Offset(x = 0f, y = highlightY),
-                    size = Size(width = canvasWidth, height = highlightHeight.coerceAtMost(canvasHeight - highlightY)),
+                    topLeft = Offset(x = 0f, y = highlightY.coerceAtLeast(0f)),
+                    size = Size(
+                        width = canvasWidth,
+                        height = highlightHeight.coerceAtMost(canvasHeight - highlightY.coerceAtLeast(0f))
+                    ),
                 )
                 
                 // Draw accent line for current round
                 drawRect(
                     color = colorScheme.primary,
-                    topLeft = Offset(x = 0f, y = y),
-                    size = Size(width = 2.dp.toPx(), height = tickWidth * 1.5f),
+                    topLeft = Offset(x = 0f, y = y - (roundSpacing * 0.15f)),
+                    size = Size(width = 2.dp.toPx(), height = roundSpacing * 0.3f),
                 )
             }
             
-            // Tick colors with better contrast
-            val tickColor = if (isCurrentRound) {
-                colorScheme.primary
-            } else {
-                colorScheme.onSurfaceVariant.copy(alpha = if (isDark) 0.6f else 0.5f)
-            }
+            // Measure and draw text
+            val textLayoutResult = textMeasurer.measure(
+                text = round.toString(),
+                style = TextStyle(
+                    color = textColor,
+                    fontSize = textSize,
+                    fontWeight = fontWeight,
+                ),
+            )
             
-            val tickSize = if (isCurrentRound) {
-                tickWidth * 1.8f
-            } else {
-                tickWidth
-            }
-            
-            // Draw tick mark
-            drawRect(
-                color = tickColor,
-                topLeft = Offset(x = canvasWidth - tickSize, y = y),
-                size = Size(width = tickSize, height = tickSize),
+            // Draw round number centered horizontally
+            drawText(
+                textLayoutResult = textLayoutResult,
+                topLeft = Offset(
+                    x = (canvasWidth - textLayoutResult.size.width) / 2f,
+                    y = y - (textLayoutResult.size.height / 2f)
+                ),
             )
         }
     }
@@ -211,14 +232,16 @@ private fun groupOverlappingEffects(
         if (processed.contains(effect)) continue
         
         val group = mutableListOf<GenericEffect>()
-        val effectEnd = effect.endRound ?: maxRound
+        // For indefinite effects, use Int.MAX_VALUE to represent unbounded end
+        val effectEnd = effect.endRound ?: Int.MAX_VALUE
         val effectStart = effect.startRound
         
         // Find all effects that overlap with this effect
         for (other in effects) {
             if (processed.contains(other)) continue
             
-            val otherEnd = other.endRound ?: maxRound
+            // For indefinite effects, use Int.MAX_VALUE to represent unbounded end
+            val otherEnd = other.endRound ?: Int.MAX_VALUE
             val otherStart = other.startRound
             
             // Check if effects overlap

@@ -32,6 +32,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.playercombatassistant.pca.effects.GameSystem
 import com.playercombatassistant.pca.settings.DefaultCombatMode
 import com.playercombatassistant.pca.settings.SettingsViewModel
+import com.playercombatassistant.pca.spells.SpellcastingSourceViewModel
+import com.playercombatassistant.pca.spells.SpellcastingSource
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.Color
+import com.playercombatassistant.pca.ui.screens.AddSpellcastingSourceDialog
+import com.playercombatassistant.pca.ui.screens.EditSpellcastingSourceDialog
 
 @Composable
 fun SettingsScreen(
@@ -90,6 +101,21 @@ fun SettingsScreen(
                     value = settings.historySessionLimit,
                     onChange = viewModel::setHistorySessionLimit,
                 )
+            }
+        }
+
+        // Spellcasting Sources
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Spellcasting Sources",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                SpellcastingSourcesSection()
             }
         }
     }
@@ -176,3 +202,120 @@ private fun <T> EnumDropdownRow(
     }
 }
 
+
+@Composable
+private fun SpellcastingSourcesSection() {
+    val viewModel: SpellcastingSourceViewModel = viewModel()
+    val sources by viewModel.sources.collectAsStateWithLifecycle()
+    
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editingSource by remember { mutableStateOf<SpellcastingSource?>(null) }
+    var showDeleteConfirm by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // List existing sources
+        sources.forEach { source ->
+            SpellcastingSourceRow(
+                source = source,
+                onEdit = { editingSource = source },
+                onDelete = { showDeleteConfirm = source.id },
+            )
+        }
+
+        // Add new source button
+        Button(
+            onClick = { showAddDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Add Spellcasting Source")
+        }
+    }
+
+    // Add source dialog
+    if (showAddDialog) {
+        AddSpellcastingSourceDialog(
+            onDismiss = { showAddDialog = false },
+            onConfirm = { name, color, slotsByLevel ->
+                viewModel.addSource(name, color, slotsByLevel)
+                showAddDialog = false
+            },
+        )
+    }
+
+    // Edit source dialog
+    editingSource?.let { source ->
+        EditSpellcastingSourceDialog(
+            source = source,
+            onDismiss = { editingSource = null },
+            onConfirm = { updatedSource ->
+                viewModel.updateSource(updatedSource)
+                editingSource = null
+            },
+        )
+    }
+
+    // Delete confirmation
+    showDeleteConfirm?.let { sourceId ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = null },
+            title = { Text("Delete Source?") },
+            text = { Text("This will permanently delete this spellcasting source and all its slots.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteSource(sourceId)
+                        showDeleteConfirm = null
+                    },
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeleteConfirm = null },
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SpellcastingSourceRow(
+    source: SpellcastingSource,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Color swatch
+        Surface(
+            modifier = Modifier
+                .height(32.dp)
+                .width(32.dp),
+            color = source.color,
+            shape = MaterialTheme.shapes.small,
+        ) {}
+        
+        // Source name
+        Text(
+            text = source.name,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
+        
+        // Edit button
+        OutlinedButton(onClick = onEdit) {
+            Text("Edit")
+        }
+        
+        // Delete button
+        OutlinedButton(onClick = onDelete) {
+            Text("Delete")
+        }
+    }
+}

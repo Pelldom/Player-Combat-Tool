@@ -56,6 +56,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -88,6 +90,7 @@ import com.playercombatassistant.pca.effects.FeatAbilityDefinition
 import com.playercombatassistant.pca.effects.PinnedEffectsViewModel
 import com.playercombatassistant.pca.effects.ConditionDefinition
 import com.playercombatassistant.pca.effects.ModifierTarget
+import com.playercombatassistant.pca.spells.SpellcastingSourceViewModel
 import com.playercombatassistant.pca.effects.getDisplayLabel
 import com.playercombatassistant.pca.improvised.ImprovisedItem
 import com.playercombatassistant.pca.modifiers.ModifierRepository
@@ -416,17 +419,9 @@ private fun CombatPhoneLayout(
                     effectsViewModel = effectsViewModel,
                 )
             }
-            CollapsibleContainer(
-                title = "Spell Slot Tracker",
-                stateKey = "combat_spell_slot_tracker",
+            SpellSlotTrackerContainer(
                 modifier = phoneContainerModifier,
-            ) {
-                Text(
-                    text = "Spell Slot tracking will be added in a future update.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            )
             if (showModifierSummary) {
                 ModifierSummaryCard(
                     modifier = phoneContainerModifier,
@@ -555,17 +550,9 @@ private fun CombatTabletLayout(
                     effectsViewModel = effectsViewModel,
                 )
             }
-            CollapsibleContainer(
-                title = "Spell Slot Tracker",
-                stateKey = "combat_spell_slot_tracker_tablet",
+            SpellSlotTrackerContainer(
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = "Spell Slot tracking will be added in a future update.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            )
             if (showModifierSummary) {
                 ModifierSummaryCard(
                     modifier = Modifier.weight(1f),
@@ -2715,5 +2702,159 @@ private fun PinnedEffectItem(
                 tint = if (isPinned) colorScheme.primary else colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+private fun SpellSlotTrackerContainer(
+    modifier: Modifier = Modifier,
+) {
+    val viewModel: SpellcastingSourceViewModel = viewModel()
+    val sources by viewModel.sources.collectAsStateWithLifecycle()
+    
+    val colorScheme = MaterialTheme.colorScheme
+    
+    // Migration check - prompt user once if old data exists
+    var showMigrationDialog by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val hasOld = viewModel.hasOldData()
+            if (hasOld && sources.isEmpty()) {
+                showMigrationDialog = true
+            }
+        }
+    }
+    
+    if (showMigrationDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showMigrationDialog = false },
+            title = { Text("Spell Slot System Updated") },
+            text = {
+                Text("The spell slot system has been updated. Please reconfigure your spellcasting sources in Settings.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showMigrationDialog = false },
+                ) {
+                    Text("OK")
+                }
+            },
+        )
+    }
+    
+    CollapsibleContainer(
+        title = "Spell Slots",
+        stateKey = "combat_spell_slot_tracker",
+        modifier = modifier,
+    ) {
+        if (sources.isEmpty()) {
+            Text(
+                text = "Configure spellcasting sources in Settings.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Display slots grouped by source
+                sources.forEach { source ->
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Source name with color indicator
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .height(24.dp)
+                                    .width(24.dp),
+                                color = source.color,
+                                shape = MaterialTheme.shapes.small,
+                            ) {}
+                            Text(
+                                text = source.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        
+                        // Display slots for each level (0-9)
+                        for (level in 0..9) {
+                            val levelSlots = source.slotsByLevel[level] ?: emptyList()
+                            if (levelSlots.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                ) {
+                                    Text(
+                                        text = "Level $level",
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    ) {
+                                        levelSlots.forEachIndexed { index, isAvailable ->
+                                            SpellSlotButton(
+                                                isAvailable = isAvailable,
+                                                onClick = { viewModel.toggleSlot(source.id, level, index) },
+                                                modifier = Modifier.weight(1f),
+                                                sourceColor = source.color,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Reset All Slots button
+                Button(
+                    onClick = { viewModel.resetAllSlots() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Reset All Slots")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpellSlotButton(
+    isAvailable: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    sourceColor: androidx.compose.ui.graphics.Color,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    androidx.compose.material3.FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+            containerColor = if (isAvailable) {
+                sourceColor.copy(alpha = 0.3f)
+            } else {
+                colorScheme.surfaceVariant
+            },
+            contentColor = if (isAvailable) {
+                sourceColor
+            } else {
+                colorScheme.onSurfaceVariant
+            },
+        ),
+    ) {
+        Text(
+            text = if (isAvailable) "●" else "○",
+            style = MaterialTheme.typography.titleLarge,
+        )
     }
 }
