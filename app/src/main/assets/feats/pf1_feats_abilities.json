@@ -1,0 +1,121 @@
+[
+  {
+    "id": "weapon_focus",
+    "name": "Weapon Focus",
+    "system": "PF1",
+    "description": "You gain a +1 competence bonus on attack rolls with a selected weapon.",
+    "modifiers": [
+      {
+        "modifierType": "competence",
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": 1
+      }
+    ],
+    "durationRounds": 0,
+    "colorId": "BLUE"
+  },
+  {
+    "id": "weapon_specialization",
+    "name": "Weapon Specialization",
+    "system": "PF1",
+    "description": "You gain a +2 bonus on damage rolls with a selected weapon.",
+    "modifiers": [
+      {
+        "modifierTarget": "Damage Rolls",
+        "modifierValue": 2
+      }
+    ],
+    "durationRounds": 0,
+    "colorId": "BLUE"
+  },
+  {
+    "id": "power_attack",
+    "name": "Power Attack",
+    "system": "PF1",
+    "description": "You take a penalty on attack rolls to gain a bonus on damage rolls.",
+    "modifiers": [
+      {
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": -1
+      },
+      {
+        "modifierTarget": "Damage Rolls",
+        "modifierValue": 2
+      }
+    ],
+    "durationRounds": 0,
+    "colorId": "RED"
+  },
+  {
+    "id": "dodge_feat",
+    "name": "Dodge",
+    "system": "PF1",
+    "description": "You gain a +1 dodge bonus to Armor Class.",
+    "modifiers": [
+      {
+        "modifierType": "dodge",
+        "modifierTarget": "Armor Class",
+        "modifierValue": 1
+      }
+    ],
+    "durationRounds": 0,
+    "colorId": "TEAL"
+  },
+  {
+    "id": "improved_initiative",
+    "name": "Improved Initiative",
+    "system": "PF1",
+    "description": "You gain a +4 bonus on initiative checks.",
+    "modifiers": [
+      {
+        "modifierTarget": "Initiative",
+        "modifierValue": 4
+      }
+    ],
+    "durationRounds": 0,
+    "colorId": "YELLOW"
+  },
+  {
+    "id": "rage",
+    "name": "Rage",
+    "system": "PF1",
+    "description": "Rage grants bonuses to Strength and Constitution but penalties to AC.",
+    "modifiers": [
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Strength",
+        "modifierValue": 4
+      },
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Constitution",
+        "modifierValue": 4
+      },
+      {
+        "modifierTarget": "Armor Class",
+        "modifierValue": -2
+      }
+    ],
+    "durationRounds": 5,
+    "colorId": "ORANGE"
+  },
+  {
+    "id": "defensive_stance",
+    "name": "Defensive Stance",
+    "system": "PF1",
+    "description": "Defensive stance grants bonuses to AC and saving throws.",
+    "modifiers": [
+      {
+        "modifierType": "dodge",
+        "modifierTarget": "Armor Class",
+        "modifierValue": 2
+      },
+      {
+        "modifierTarget": "Saving Throws",
+        "modifierValue": 2
+      }
+    ],
+    "durationRounds": 5,
+    "colorId": "BROWN"
+  }
+]

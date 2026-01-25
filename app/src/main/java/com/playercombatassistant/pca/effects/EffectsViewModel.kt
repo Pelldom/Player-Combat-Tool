@@ -252,6 +252,88 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
     }
 
     /**
+     * Set the current round without processing effects.
+     * Used when combat starts to initialize round to 1 without decrementing durations.
+     */
+    fun setCurrentRound(round: Int) {
+        currentRound = round
+    }
+
+    /**
+     * Update an existing effect by ID.
+     * Only updates duration (remainingRounds).
+     * Recalculates endRound based on new remainingRounds and currentRound.
+     */
+    fun updateEffect(
+        effectId: String,
+        remainingRounds: Int?,
+    ): Boolean {
+        var updated = false
+
+        // Try to update system-specific effect
+        _activeEffects.update { effects ->
+            val found = effects.find { it.id == effectId }
+            if (found != null) {
+                updated = true
+                val newEndRound = remainingRounds?.let { currentRound + it }
+                effects.map { effect ->
+                    if (effect.id == effectId) {
+                        effect.copy(
+                            remainingRounds = remainingRounds,
+                            endRound = newEndRound,
+                        )
+                    } else {
+                        effect
+                    }
+                }
+            } else {
+                effects
+            }
+        }
+
+        return updated
+    }
+
+    /**
+     * Update an existing generic effect by ID.
+     * Updates name, notes, and duration (remainingRounds).
+     * Recalculates endRound and durationRounds based on new remainingRounds.
+     */
+    fun updateGenericEffect(
+        effectId: String,
+        name: String? = null,
+        notes: String? = null,
+        remainingRounds: Int?,
+    ): Boolean {
+        var updated = false
+
+        _activeGenericEffects.update { effects ->
+            val found = effects.find { it.id == effectId }
+            if (found != null) {
+                updated = true
+                val newEndRound = remainingRounds?.let { currentRound + it }
+                effects.map { effect ->
+                    if (effect.id == effectId) {
+                        effect.copy(
+                            name = name ?: effect.name,
+                            notes = notes, // null means clear notes, non-null means set to that value
+                            remainingRounds = remainingRounds,
+                            durationRounds = remainingRounds,
+                            endRound = newEndRound,
+                        )
+                    } else {
+                        effect
+                    }
+                }
+            } else {
+                effects
+            }
+        }
+
+        return updated
+    }
+
+    /**
      * Clear all effects (e.g., when combat ends).
      * Clears both system-specific and generic effects.
      */

@@ -1,0 +1,202 @@
+[
+  {
+    "id": "bless",
+    "name": "Bless",
+    "system": "PF1",
+    "spellLevel": 1,
+    "description": "Bless grants a +1 morale bonus on attack rolls and saving throws against fear.",
+    "modifiers": [
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": 1
+      },
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Saving Throws",
+        "modifierValue": 1
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "GREEN"
+  },
+  {
+    "id": "bane",
+    "name": "Bane",
+    "system": "PF1",
+    "spellLevel": 1,
+    "description": "Bane imposes a -1 morale penalty on attack rolls and saving throws against fear.",
+    "modifiers": [
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": -1
+      },
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Saving Throws",
+        "modifierValue": -1
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "RED"
+  },
+  {
+    "id": "divine_favor",
+    "name": "Divine Favor",
+    "system": "PF1",
+    "spellLevel": 1,
+    "description": "Divine Favor grants a luck bonus on attack and damage rolls.",
+    "modifiers": [
+      {
+        "modifierType": "luck",
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": 1
+      },
+      {
+        "modifierType": "luck",
+        "modifierTarget": "Damage Rolls",
+        "modifierValue": 1
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "YELLOW"
+  },
+  {
+    "id": "mage_armor",
+    "name": "Mage Armor",
+    "system": "PF1",
+    "spellLevel": 1,
+    "description": "Mage Armor grants a +4 armor bonus to AC.",
+    "modifiers": [
+      {
+        "modifierType": "armor",
+        "modifierTarget": "Armor Class",
+        "modifierValue": 4
+      }
+    ],
+    "durationRounds": 60,
+    "colorId": "BLUE"
+  },
+  {
+    "id": "barkskin",
+    "name": "Barkskin",
+    "system": "PF1",
+    "spellLevel": 2,
+    "description": "Barkskin grants a natural armor bonus to AC.",
+    "modifiers": [
+      {
+        "modifierType": "naturalArmor",
+        "modifierTarget": "Armor Class",
+        "modifierValue": 2
+      }
+    ],
+    "durationRounds": 20,
+    "colorId": "BROWN"
+  },
+  {
+    "id": "bulls_strength",
+    "name": "Bull's Strength",
+    "system": "PF1",
+    "spellLevel": 2,
+    "description": "Bull's Strength grants a +4 enhancement bonus to Strength.",
+    "modifiers": [
+      {
+        "modifierType": "enhancement",
+        "modifierTarget": "Strength",
+        "modifierValue": 4
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "ORANGE"
+  },
+  {
+    "id": "cats_grace",
+    "name": "Cat's Grace",
+    "system": "PF1",
+    "spellLevel": 2,
+    "description": "Cat's Grace grants a +4 enhancement bonus to Dexterity.",
+    "modifiers": [
+      {
+        "modifierType": "enhancement",
+        "modifierTarget": "Dexterity",
+        "modifierValue": 4
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "ORANGE"
+  },
+  {
+    "id": "heroism",
+    "name": "Heroism",
+    "system": "PF1",
+    "spellLevel": 3,
+    "description": "Heroism grants a +2 morale bonus on attack rolls, saving throws, and skill checks.",
+    "modifiers": [
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": 2
+      },
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Saving Throws",
+        "modifierValue": 2
+      },
+      {
+        "modifierType": "morale",
+        "modifierTarget": "Skill Checks",
+        "modifierValue": 2
+      }
+    ],
+    "durationRounds": 60,
+    "colorId": "GREEN"
+  },
+  {
+    "id": "haste",
+    "name": "Haste",
+    "system": "PF1",
+    "spellLevel": 3,
+    "description": "Haste grants bonuses to speed, attack rolls, AC, and Reflex saves.",
+    "modifiers": [
+      {
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": 1
+      },
+      {
+        "modifierType": "dodge",
+        "modifierTarget": "Armor Class",
+        "modifierValue": 1
+      },
+      {
+        "modifierTarget": "Saving Throws",
+        "modifierValue": 1
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "TEAL"
+  },
+  {
+    "id": "slow",
+    "name": "Slow",
+    "system": "PF1",
+    "spellLevel": 3,
+    "description": "Slow penalizes movement, attack rolls, AC, and Reflex saves.",
+    "modifiers": [
+      {
+        "modifierTarget": "Attack Rolls",
+        "modifierValue": -1
+      },
+      {
+        "modifierTarget": "Armor Class",
+        "modifierValue": -1
+      },
+      {
+        "modifierTarget": "Saving Throws",
+        "modifierValue": -1
+      }
+    ],
+    "durationRounds": 10,
+    "colorId": "PURPLE"
+  }
+]

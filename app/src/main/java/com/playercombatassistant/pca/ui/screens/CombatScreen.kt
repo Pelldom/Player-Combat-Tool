@@ -43,6 +43,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.HorizontalDivider
 import com.playercombatassistant.pca.ui.components.CollapsibleContainer
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
@@ -80,6 +81,12 @@ import com.playercombatassistant.pca.effects.GameSystem
 import com.playercombatassistant.pca.effects.GenericEffect
 import com.playercombatassistant.pca.effects.ModifierAggregation
 import com.playercombatassistant.pca.effects.Pf1ConditionRepository
+import com.playercombatassistant.pca.effects.Pf1SpellEffectRepository
+import com.playercombatassistant.pca.effects.SpellEffectDefinition
+import com.playercombatassistant.pca.effects.Pf1FeatAbilityRepository
+import com.playercombatassistant.pca.effects.FeatAbilityDefinition
+import com.playercombatassistant.pca.effects.PinnedEffectsViewModel
+import com.playercombatassistant.pca.effects.ConditionDefinition
 import com.playercombatassistant.pca.effects.ModifierTarget
 import com.playercombatassistant.pca.effects.getDisplayLabel
 import com.playercombatassistant.pca.improvised.ImprovisedItem
@@ -137,8 +144,8 @@ fun CombatScreen(
             canEnd = state.inCombat,
             onStartCombat = {
                 viewModel.startCombat()
-                // Update effects view model to round 1 when combat starts
-                effectsViewModel.processNextRound(1)
+                // Set round to 1 without processing effects (no duration decrement)
+                effectsViewModel.setCurrentRound(1)
             },
             onNextRound = {
                 val nextRound = state.round + 1
@@ -180,6 +187,7 @@ fun CombatScreen(
             },
             onAddGenericEffect = { showAddEffectSheet = true },
             gameSystem = settings.gameSystem,
+            effectsViewModel = effectsViewModel,
         )
 
         WindowWidthSizeClass.Medium,
@@ -192,8 +200,8 @@ fun CombatScreen(
             canEnd = state.inCombat,
             onStartCombat = {
                 viewModel.startCombat()
-                // Update effects view model to round 1 when combat starts
-                effectsViewModel.processNextRound(1)
+                // Set round to 1 without processing effects (no duration decrement)
+                effectsViewModel.setCurrentRound(1)
             },
             onNextRound = {
                 val nextRound = state.round + 1
@@ -233,6 +241,7 @@ fun CombatScreen(
             },
             onAddGenericEffect = { showAddEffectSheet = true },
             gameSystem = settings.gameSystem,
+            effectsViewModel = effectsViewModel,
         )
         else -> CombatTabletLayout(
             modifier = rootModifier,
@@ -243,8 +252,8 @@ fun CombatScreen(
             canEnd = state.inCombat,
             onStartCombat = {
                 viewModel.startCombat()
-                // Update effects view model to round 1 when combat starts
-                effectsViewModel.processNextRound(1)
+                // Set round to 1 without processing effects (no duration decrement)
+                effectsViewModel.setCurrentRound(1)
             },
             onNextRound = {
                 val nextRound = state.round + 1
@@ -284,6 +293,7 @@ fun CombatScreen(
             },
             onAddGenericEffect = { showAddEffectSheet = true },
             gameSystem = settings.gameSystem,
+            effectsViewModel = effectsViewModel,
         )
     }
 
@@ -341,6 +351,7 @@ private fun CombatPhoneLayout(
     inCombat: Boolean,
     onAddGenericEffect: () -> Unit,
     gameSystem: GameSystem,
+    effectsViewModel: EffectsViewModel,
 ) {
     Row(
         modifier = modifier.fillMaxSize(),
@@ -402,6 +413,7 @@ private fun CombatPhoneLayout(
                     activeGenericEffects = activeGenericEffects,
                     currentRound = round,
                     onAddGenericEffect = onAddGenericEffect,
+                    effectsViewModel = effectsViewModel,
                 )
             }
             CollapsibleContainer(
@@ -424,12 +436,33 @@ private fun CombatPhoneLayout(
         }
 
         // Right side (25% width) - RoundTrackerBar (fills available height)
+        // Convert Effect objects to GenericEffect for display
+        val allEffectsForTracker = remember(activeEffects, activeGenericEffects) {
+            val convertedEffects = activeEffects.map { effect ->
+                // Map EffectType to EffectColorId (matching EffectListItem logic)
+                val colorId = when (effect.type) {
+                    EffectType.CONDITION -> EffectColorId.ERROR
+                    EffectType.TIMER -> EffectColorId.PRIMARY
+                }
+                GenericEffect(
+                    id = effect.id,
+                    name = effect.name,
+                    notes = effect.description.takeIf { it.isNotBlank() },
+                    colorId = colorId,
+                    startRound = effect.startRound,
+                    durationRounds = effect.remainingRounds,
+                    endRound = effect.endRound,
+                    remainingRounds = effect.remainingRounds,
+                )
+            }
+            activeGenericEffects + convertedEffects
+        }
         RoundTrackerBar(
             modifier = Modifier
                 .weight(0.25f)
                 .fillMaxHeight(),
             currentRound = round,
-            effects = activeGenericEffects,
+            effects = allEffectsForTracker,
         )
     }
 }
@@ -461,6 +494,7 @@ private fun CombatTabletLayout(
     inCombat: Boolean,
     onAddGenericEffect: () -> Unit,
     gameSystem: GameSystem,
+    effectsViewModel: EffectsViewModel,
 ) {
     Row(
         modifier = modifier,
@@ -518,6 +552,7 @@ private fun CombatTabletLayout(
                     activeGenericEffects = activeGenericEffects,
                     currentRound = round,
                     onAddGenericEffect = onAddGenericEffect,
+                    effectsViewModel = effectsViewModel,
                 )
             }
             CollapsibleContainer(
@@ -542,13 +577,34 @@ private fun CombatTabletLayout(
         }
 
         // RoundTrackerBar on the right side for tablet
+        // Convert Effect objects to GenericEffect for display
+        val allEffectsForTrackerTablet = remember(activeEffects, activeGenericEffects) {
+            val convertedEffects = activeEffects.map { effect ->
+                // Map EffectType to EffectColorId (matching EffectListItem logic)
+                val colorId = when (effect.type) {
+                    EffectType.CONDITION -> EffectColorId.ERROR
+                    EffectType.TIMER -> EffectColorId.PRIMARY
+                }
+                GenericEffect(
+                    id = effect.id,
+                    name = effect.name,
+                    notes = effect.description.takeIf { it.isNotBlank() },
+                    colorId = colorId,
+                    startRound = effect.startRound,
+                    durationRounds = effect.remainingRounds,
+                    endRound = effect.endRound,
+                    remainingRounds = effect.remainingRounds,
+                )
+            }
+            activeGenericEffects + convertedEffects
+        }
         Column(
             modifier = Modifier.weight(0.05f),
         ) {
             RoundTrackerBar(
                 modifier = Modifier.fillMaxSize(),
                 currentRound = round,
-                effects = activeGenericEffects,
+                effects = allEffectsForTrackerTablet,
             )
         }
     }
@@ -1011,7 +1067,11 @@ private fun ActiveEffectsCard(
     activeGenericEffects: List<GenericEffect>,
     currentRound: Int,
     onAddGenericEffect: () -> Unit,
+    effectsViewModel: EffectsViewModel,
 ) {
+    var editingEffect: Effect? by remember { mutableStateOf(null) }
+    var editingGenericEffect: GenericEffect? by remember { mutableStateOf(null) }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -1049,22 +1109,52 @@ private fun ActiveEffectsCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(activeEffects, key = { it.id }) { effect ->
-                        EffectListItem(effect = effect)
+                        EffectListItem(
+                            effect = effect,
+                            onClick = { editingEffect = effect },
+                        )
                     }
                     items(activeGenericEffects, key = { it.id }) { genericEffect ->
                         GenericEffectListItem(
                             genericEffect = genericEffect,
                             currentRound = currentRound,
+                            onClick = { editingGenericEffect = genericEffect },
                         )
                     }
                 }
             }
         }
     }
+
+    // Edit dialogs
+    editingEffect?.let { effect ->
+        EditEffectDialog(
+            effect = effect,
+            onDismiss = { editingEffect = null },
+            onSave = { remainingRounds ->
+                effectsViewModel.updateEffect(effect.id, remainingRounds)
+                editingEffect = null
+            },
+        )
+    }
+
+    editingGenericEffect?.let { genericEffect ->
+        EditGenericEffectDialog(
+            genericEffect = genericEffect,
+            onDismiss = { editingGenericEffect = null },
+            onSave = { name, notes, remainingRounds ->
+                effectsViewModel.updateGenericEffect(genericEffect.id, name, notes, remainingRounds)
+                editingGenericEffect = null
+            },
+        )
+    }
 }
 
 @Composable
-private fun EffectListItem(effect: Effect) {
+private fun EffectListItem(
+    effect: Effect,
+    onClick: () -> Unit,
+) {
     val colorScheme = MaterialTheme.colorScheme
     val effectTypeLabel = when (effect.type) {
         EffectType.CONDITION -> "Condition"
@@ -1075,6 +1165,7 @@ private fun EffectListItem(effect: Effect) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .semantics {
                 contentDescription = "${effect.name}, $effectTypeLabel effect, ${effect.system.name}, $roundsText"
             },
@@ -1177,6 +1268,7 @@ private fun EffectListItem(effect: Effect) {
 private fun GenericEffectListItem(
     genericEffect: GenericEffect,
     currentRound: Int,
+    onClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
@@ -1193,6 +1285,7 @@ private fun GenericEffectListItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .semantics {
                 contentDescription = "${genericEffect.name}, generic effect, $roundsText"
             },
@@ -1394,9 +1487,21 @@ private fun AddGenericEffectSheet(
     onAdd: (String, Int?, EffectColorId, String?, String?, ModifierTarget?, Int?) -> Unit,
 ) {
     val context = LocalContext.current
+    val pinnedEffectsViewModel: PinnedEffectsViewModel = viewModel()
+    val pinnedEffectIds by pinnedEffectsViewModel.pinnedEffectIds.collectAsStateWithLifecycle()
     val conditions = remember {
         Pf1ConditionRepository(context).getAllConditions()
             .sortedBy { it.name }
+    }
+    
+    // Load spell effects (repository already filters to PF1 only)
+    val allSpellEffects = remember {
+        Pf1SpellEffectRepository(context).getAllSpellEffects()
+    }
+    
+    // Load feats/abilities (repository already filters to PF1 only)
+    val allFeatAbilities = remember {
+        Pf1FeatAbilityRepository(context).getAllFeatAbilities()
     }
     
     // Load modifier types filtered by current game system
@@ -1421,6 +1526,11 @@ private fun AddGenericEffectSheet(
     var duration by remember { mutableStateOf(1) }
     var isIndefinite by remember { mutableStateOf(false) }
     var conditionDuration by remember { mutableStateOf(1) }
+    var spellEffectDuration by remember { mutableStateOf(1) }
+    var spellEffectSearchText by remember { mutableStateOf("") }
+    var selectedSpellLevel by remember { mutableStateOf<Int?>(null) }
+    var featAbilitySearchText by remember { mutableStateOf("") }
+    var featAbilityDuration by remember { mutableStateOf(1) }
     var selectedModifierType by remember { mutableStateOf<ModifierType?>(null) }
     var modifierTypeDropdownExpanded by remember { mutableStateOf(false) }
     var selectedModifierTarget by remember { mutableStateOf<ModifierTarget?>(null) }
@@ -1458,9 +1568,146 @@ private fun AddGenericEffectSheet(
                     )
                 }
             }
+            
+            // Scrollable content area
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Pinned section (only show if there are pinned effects)
+            val pinnedConditions = remember(conditions, pinnedEffectIds) {
+                conditions.filter { it.id in pinnedEffectIds }
+            }
+            val pinnedSpellEffects = remember(allSpellEffects, pinnedEffectIds) {
+                allSpellEffects.filter { it.id in pinnedEffectIds }
+            }
+            val pinnedFeatAbilities = remember(allFeatAbilities, pinnedEffectIds) {
+                allFeatAbilities.filter { it.id in pinnedEffectIds }
+            }
+            val hasPinnedEffects = pinnedConditions.isNotEmpty() || pinnedSpellEffects.isNotEmpty() || pinnedFeatAbilities.isNotEmpty()
 
-            if (selectedTabIndex == 0) {
-            // Modifier fields in a horizontal layout
+            if (hasPinnedEffects) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "Pinned",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    
+                    // Show pinned conditions
+                    pinnedConditions.forEach { condition ->
+                        PinnedEffectItem(
+                            name = condition.name,
+                            description = condition.shortDescription,
+                            isPinned = true,
+                            onTogglePin = { pinnedEffectsViewModel.togglePin(condition.id) },
+                            onApply = {
+                                val effectModifiers = condition.modifiers.map { modEntry ->
+                                    com.playercombatassistant.pca.effects.Modifier(
+                                        target = modEntry.target,
+                                        value = modEntry.value,
+                                        source = condition.name,
+                                    )
+                                }
+                                val conditionEffect = Effect(
+                                    id = UUID.randomUUID().toString(),
+                                    name = condition.name,
+                                    system = condition.system,
+                                    description = condition.shortDescription,
+                                    remainingRounds = conditionDuration,
+                                    type = EffectType.CONDITION,
+                                    modifiers = effectModifiers,
+                                    startRound = currentRound,
+                                    endRound = currentRound + conditionDuration - 1,
+                                )
+                                effectsViewModel.addEffect(currentRound, conditionEffect)
+                                onDismiss()
+                            },
+                        )
+                    }
+                    
+                    // Show pinned spell effects
+                    pinnedSpellEffects.forEach { spellEffect ->
+                        PinnedEffectItem(
+                            name = spellEffect.name,
+                            description = "Level ${spellEffect.spellLevel} - ${spellEffect.description}",
+                            isPinned = true,
+                            onTogglePin = { pinnedEffectsViewModel.togglePin(spellEffect.id) },
+                            onApply = {
+                                val effectModifiers = spellEffect.modifiers.map { modEntry ->
+                                    com.playercombatassistant.pca.effects.Modifier(
+                                        target = modEntry.modifierTarget,
+                                        value = modEntry.modifierValue.toString(),
+                                        source = spellEffect.name,
+                                    )
+                                }
+                                val spellEffectInstance = Effect(
+                                    id = UUID.randomUUID().toString(),
+                                    name = spellEffect.name,
+                                    system = spellEffect.system,
+                                    description = spellEffect.description,
+                                    remainingRounds = spellEffectDuration,
+                                    type = EffectType.CONDITION,
+                                    modifiers = effectModifiers,
+                                    startRound = currentRound,
+                                    endRound = currentRound + spellEffectDuration - 1,
+                                )
+                                effectsViewModel.addEffect(currentRound, spellEffectInstance)
+                                onDismiss()
+                            },
+                        )
+                    }
+                    
+                    // Show pinned feats/abilities
+                    pinnedFeatAbilities.forEach { featAbility ->
+                        val isPassive = featAbility.defaultDuration == 0
+                        PinnedEffectItem(
+                            name = featAbility.name,
+                            description = if (isPassive) {
+                                "Passive - ${featAbility.description}"
+                            } else {
+                                "Timed - ${featAbility.description}"
+                            },
+                            isPinned = true,
+                            onTogglePin = { pinnedEffectsViewModel.togglePin(featAbility.id) },
+                            onApply = {
+                                val effectModifiers = featAbility.modifiers.map { modEntry ->
+                                    com.playercombatassistant.pca.effects.Modifier(
+                                        target = modEntry.modifierTarget,
+                                        value = modEntry.modifierValue.toString(),
+                                        source = featAbility.name,
+                                    )
+                                }
+                                val finalDuration = if (isPassive) 0 else featAbilityDuration
+                                val featAbilityInstance = Effect(
+                                    id = UUID.randomUUID().toString(),
+                                    name = featAbility.name,
+                                    system = featAbility.system,
+                                    description = featAbility.description,
+                                    remainingRounds = if (isPassive) null else finalDuration,
+                                    type = EffectType.CONDITION,
+                                    modifiers = effectModifiers,
+                                    startRound = currentRound,
+                                    endRound = if (isPassive) null else (currentRound + finalDuration - 1),
+                                )
+                                effectsViewModel.addEffect(currentRound, featAbilityInstance)
+                                onDismiss()
+                            },
+                        )
+                    }
+                }
+                
+                // Divider
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+                if (selectedTabIndex == 0) {
+                // Modifier fields in a horizontal layout
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1778,8 +2025,14 @@ private fun AddGenericEffectSheet(
                         }
                     }
                     conditions.forEach { condition ->
-                        OutlinedButton(
-                            onClick = {
+                        val isPinned = condition.id in pinnedEffectIds
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedButton(
+                                onClick = {
                                 // Convert condition modifiers to Effect.Modifier format
                                 val effectModifiers = condition.modifiers.map { modEntry ->
                                     com.playercombatassistant.pca.effects.Modifier(
@@ -1807,35 +2060,660 @@ private fun AddGenericEffectSheet(
                                 effectsViewModel.addEffect(currentRound, conditionEffect)
                                 onDismiss()
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.weight(1f),
                         ) {
                             Text(condition.name)
+                        }
+                            IconButton(
+                                onClick = { pinnedEffectsViewModel.togglePin(condition.id) },
+                            ) {
+                                Icon(
+                                    imageVector = if (isPinned) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                    contentDescription = if (isPinned) "Unpin" else "Pin",
+                                    tint = if (isPinned) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
             } else if (selectedTabIndex == 2) {
+                // Spell Effects tab
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Duration selector
                     Text(
-                        text = "Spell effects will be added in a future update.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "Duration (rounds)",
+                        style = MaterialTheme.typography.labelLarge,
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedButton(
+                            onClick = { spellEffectDuration = (spellEffectDuration - 1).coerceAtLeast(1) },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("-")
+                        }
+                        Text(
+                            text = spellEffectDuration.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedButton(
+                            onClick = { spellEffectDuration = spellEffectDuration + 1 },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("+")
+                        }
+                    }
+                    
+                    // Search field
+                    OutlinedTextField(
+                        value = spellEffectSearchText,
+                        onValueChange = { spellEffectSearchText = it },
+                        label = { Text("Search spell name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    
+                    // Spell level filter
+                    var spellLevelDropdownExpanded by remember { mutableStateOf(false) }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Filter by level:",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+                        OutlinedButton(
+                            onClick = { spellLevelDropdownExpanded = true },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(
+                                text = selectedSpellLevel?.let { "Level $it" } ?: "All Levels",
+                                maxLines = 1,
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = spellLevelDropdownExpanded,
+                            onDismissRequest = { spellLevelDropdownExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("All Levels") },
+                                onClick = {
+                                    selectedSpellLevel = null
+                                    spellLevelDropdownExpanded = false
+                                },
+                            )
+                            // Get unique spell levels from all spell effects
+                            val uniqueLevels = allSpellEffects.map { it.spellLevel }.distinct().sorted()
+                            for (level in uniqueLevels) {
+                                DropdownMenuItem(
+                                    text = { Text("Level $level") },
+                                    onClick = {
+                                        selectedSpellLevel = level
+                                        spellLevelDropdownExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Filter and search spell effects
+                    val filteredSpellEffects = remember(allSpellEffects, spellEffectSearchText, selectedSpellLevel) {
+                        allSpellEffects
+                            .filter { spell ->
+                                // Filter by search text
+                                val matchesSearch = spellEffectSearchText.isBlank() || 
+                                    spell.name.contains(spellEffectSearchText, ignoreCase = true)
+                                
+                                // Filter by spell level
+                                val matchesLevel = selectedSpellLevel == null || spell.spellLevel == selectedSpellLevel
+                                
+                                matchesSearch && matchesLevel
+                            }
+                            .sortedBy { it.name }
+                    }
+                    
+                    // Spell effects list
+                    filteredSpellEffects.forEach { spellEffect ->
+                        val isPinned = spellEffect.id in pinnedEffectIds
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    // Convert spell effect modifiers to Effect.Modifier format
+                                    val effectModifiers = spellEffect.modifiers.map { modEntry ->
+                                        com.playercombatassistant.pca.effects.Modifier(
+                                            target = modEntry.modifierTarget,
+                                            value = modEntry.modifierValue.toString(),
+                                            source = spellEffect.name,
+                                        )
+                                    }
+                                    
+                                    // Create an Effect object for the spell effect (not GenericEffect)
+                                    // This preserves all modifiers from the spell effect
+                                    val spellEffectInstance = Effect(
+                                        id = UUID.randomUUID().toString(),
+                                        name = spellEffect.name,
+                                        system = spellEffect.system,
+                                        description = spellEffect.description,
+                                        remainingRounds = spellEffectDuration,
+                                        type = EffectType.CONDITION, // Use CONDITION type for spell effects
+                                        modifiers = effectModifiers,
+                                        startRound = currentRound,
+                                        endRound = currentRound + spellEffectDuration - 1,
+                                    )
+                                    
+                                    // Add as Effect (not GenericEffect) to preserve modifiers
+                                    effectsViewModel.addEffect(currentRound, spellEffectInstance)
+                                    onDismiss()
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.Start,
+                                ) {
+                                    Text(
+                                        text = spellEffect.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                    Text(
+                                        text = "Level ${spellEffect.spellLevel}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { pinnedEffectsViewModel.togglePin(spellEffect.id) },
+                            ) {
+                                Icon(
+                                    imageVector = if (isPinned) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                    contentDescription = if (isPinned) "Unpin" else "Pin",
+                                    tint = if (isPinned) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    
+                    if (filteredSpellEffects.isEmpty()) {
+                        Text(
+                            text = if (spellEffectSearchText.isNotBlank() || selectedSpellLevel != null) {
+                                "No spell effects found matching your filters."
+                            } else {
+                                "No spell effects available."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
                 }
             } else {
+                // Feats & Abilities tab
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Duration selector (only for timed abilities)
                     Text(
-                        text = "Feats and abilities will be added in a future update.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = "Duration (rounds)",
+                        style = MaterialTheme.typography.labelLarge,
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        OutlinedButton(
+                            onClick = { featAbilityDuration = (featAbilityDuration - 1).coerceAtLeast(1) },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("-")
+                        }
+                        Text(
+                            text = featAbilityDuration.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedButton(
+                            onClick = { featAbilityDuration = featAbilityDuration + 1 },
+                            modifier = Modifier.width(56.dp),
+                        ) {
+                            Text("+")
+                        }
+                    }
+                    
+                    // Search field
+                    OutlinedTextField(
+                        value = featAbilitySearchText,
+                        onValueChange = { featAbilitySearchText = it },
+                        label = { Text("Search feat/ability name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    
+                    // Filter and search feats/abilities
+                    val filteredFeatAbilities = remember(allFeatAbilities, featAbilitySearchText) {
+                        allFeatAbilities
+                            .filter { feat ->
+                                // Filter by search text
+                                featAbilitySearchText.isBlank() || 
+                                    feat.name.contains(featAbilitySearchText, ignoreCase = true)
+                            }
+                            .sortedBy { it.name }
+                    }
+                    
+                    // Feats/abilities list
+                    filteredFeatAbilities.forEach { featAbility ->
+                        val isPassive = featAbility.defaultDuration == 0
+                        val isPinned = featAbility.id in pinnedEffectIds
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    // Convert feat/ability modifiers to Effect.Modifier format
+                                    val effectModifiers = featAbility.modifiers.map { modEntry ->
+                                        com.playercombatassistant.pca.effects.Modifier(
+                                            target = modEntry.modifierTarget,
+                                            value = modEntry.modifierValue.toString(),
+                                            source = featAbility.name,
+                                        )
+                                    }
+                                    
+                                    // Determine duration: 0 for passive, user-selected for timed
+                                    val finalDuration = if (isPassive) {
+                                        0 // Passive effects don't decrement
+                                    } else {
+                                        featAbilityDuration
+                                    }
+                                    
+                                    // Create an Effect object for the feat/ability (not GenericEffect)
+                                    // This preserves all modifiers from the feat/ability
+                                    val featAbilityInstance = Effect(
+                                        id = UUID.randomUUID().toString(),
+                                        name = featAbility.name,
+                                        system = featAbility.system,
+                                        description = featAbility.description,
+                                        remainingRounds = if (isPassive) null else finalDuration, // null for passive (indefinite)
+                                        type = EffectType.CONDITION, // Use CONDITION type for feats/abilities
+                                        modifiers = effectModifiers,
+                                        startRound = currentRound,
+                                        endRound = if (isPassive) null else (currentRound + finalDuration - 1), // null for passive
+                                    )
+                                    
+                                    // Add as Effect (not GenericEffect) to preserve modifiers
+                                    effectsViewModel.addEffect(currentRound, featAbilityInstance)
+                                    onDismiss()
+                                },
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.Start,
+                                ) {
+                                    Text(
+                                        text = featAbility.name,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
+                                    Text(
+                                        text = if (isPassive) {
+                                            "Passive (persists until End Combat)"
+                                        } else {
+                                            "Timed (${featAbility.defaultDuration} rounds default)"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { pinnedEffectsViewModel.togglePin(featAbility.id) },
+                            ) {
+                                Icon(
+                                    imageVector = if (isPinned) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                    contentDescription = if (isPinned) "Unpin" else "Pin",
+                                    tint = if (isPinned) colorScheme.primary else colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    
+                    if (filteredFeatAbilities.isEmpty()) {
+                        Text(
+                            text = if (featAbilitySearchText.isNotBlank()) {
+                                "No feats/abilities found matching your search."
+                            } else {
+                                "No feats/abilities available."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
                 }
             }
+            } // End of scrollable Column
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditEffectDialog(
+    effect: Effect,
+    onDismiss: () -> Unit,
+    onSave: (Int?) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var remainingRoundsText by rememberSaveable { mutableStateOf(effect.remainingRounds?.toString() ?: "") }
+    var isIndefinite by rememberSaveable { mutableStateOf(effect.remainingRounds == null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Edit Effect: ${effect.name}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+
+            // Duration input
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = remainingRoundsText,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            remainingRoundsText = newValue
+                            isIndefinite = false
+                        }
+                    },
+                    label = { Text("Remaining Rounds") },
+                    enabled = !isIndefinite,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = {
+                        val current = remainingRoundsText.toIntOrNull() ?: 1
+                        if (current > 1) {
+                            remainingRoundsText = (current - 1).toString()
+                        }
+                    },
+                    enabled = !isIndefinite && (remainingRoundsText.toIntOrNull() ?: 1) > 1,
+                ) {
+                    Text("-", style = MaterialTheme.typography.titleLarge)
+                }
+                IconButton(
+                    onClick = {
+                        val current = remainingRoundsText.toIntOrNull() ?: 0
+                        remainingRoundsText = (current + 1).toString()
+                    },
+                    enabled = !isIndefinite,
+                ) {
+                    Text("+", style = MaterialTheme.typography.titleLarge)
+                }
+            }
+
+            // Indefinite checkbox
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                androidx.compose.material3.Checkbox(
+                    checked = isIndefinite,
+                    onCheckedChange = { checked ->
+                        isIndefinite = checked
+                        if (checked) {
+                            remainingRoundsText = ""
+                        } else {
+                            remainingRoundsText = "1"
+                        }
+                    },
+                )
+                Text(
+                    text = "Indefinite duration",
+                    modifier = Modifier.clickable { isIndefinite = !isIndefinite },
+                )
+            }
+
+            // Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Cancel")
+                }
+                Button(
+                    onClick = {
+                        val rounds = if (isIndefinite) null else remainingRoundsText.toIntOrNull()?.coerceAtLeast(1)
+                        onSave(rounds)
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Save")
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditGenericEffectDialog(
+    genericEffect: GenericEffect,
+    onDismiss: () -> Unit,
+    onSave: (String?, String?, Int?) -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var nameText by rememberSaveable { mutableStateOf(genericEffect.name) }
+    var notesText by rememberSaveable { mutableStateOf(genericEffect.notes ?: "") }
+    var remainingRoundsText by rememberSaveable { mutableStateOf(genericEffect.remainingRounds?.toString() ?: "") }
+    var isIndefinite by rememberSaveable { mutableStateOf(genericEffect.remainingRounds == null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                text = "Edit Effect",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+
+            // Name input
+            OutlinedTextField(
+                value = nameText,
+                onValueChange = { nameText = it },
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Notes input
+            OutlinedTextField(
+                value = notesText,
+                onValueChange = { notesText = it },
+                label = { Text("Notes (optional)") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3,
+            )
+
+            // Duration input
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = remainingRoundsText,
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            remainingRoundsText = newValue
+                            isIndefinite = false
+                        }
+                    },
+                    label = { Text("Remaining Rounds") },
+                    enabled = !isIndefinite,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = {
+                        val current = remainingRoundsText.toIntOrNull() ?: 1
+                        if (current > 1) {
+                            remainingRoundsText = (current - 1).toString()
+                        }
+                    },
+                    enabled = !isIndefinite && (remainingRoundsText.toIntOrNull() ?: 1) > 1,
+                ) {
+                    Text("-", style = MaterialTheme.typography.titleLarge)
+                }
+                IconButton(
+                    onClick = {
+                        val current = remainingRoundsText.toIntOrNull() ?: 0
+                        remainingRoundsText = (current + 1).toString()
+                    },
+                    enabled = !isIndefinite,
+                ) {
+                    Text("+", style = MaterialTheme.typography.titleLarge)
+                }
+            }
+
+            // Indefinite checkbox
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                androidx.compose.material3.Checkbox(
+                    checked = isIndefinite,
+                    onCheckedChange = { checked ->
+                        isIndefinite = checked
+                        if (checked) {
+                            remainingRoundsText = ""
+                        } else {
+                            remainingRoundsText = "1"
+                        }
+                    },
+                )
+                Text(
+                    text = "Indefinite duration",
+                    modifier = Modifier.clickable { isIndefinite = !isIndefinite },
+                )
+            }
+
+            // Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Cancel")
+                }
+                Button(
+                    onClick = {
+                        val rounds = if (isIndefinite) null else remainingRoundsText.toIntOrNull()?.coerceAtLeast(1)
+                        onSave(
+                            nameText.takeIf { it.isNotBlank() }, // Preserve original if blank
+                            notesText.ifBlank { null }, // Allow clearing notes
+                            rounds,
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("Save")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PinnedEffectItem(
+    name: String,
+    description: String,
+    isPinned: Boolean,
+    onTogglePin: () -> Unit,
+    onApply: () -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OutlinedButton(
+            onClick = onApply,
+            modifier = Modifier.weight(1f),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        IconButton(
+            onClick = onTogglePin,
+        ) {
+            Icon(
+                imageVector = if (isPinned) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                contentDescription = if (isPinned) "Unpin" else "Pin",
+                tint = if (isPinned) colorScheme.primary else colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
