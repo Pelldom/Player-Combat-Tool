@@ -95,12 +95,19 @@ import com.playercombatassistant.pca.effects.getDisplayLabel
 import com.playercombatassistant.pca.improvised.ImprovisedItem
 import com.playercombatassistant.pca.modifiers.ModifierRepository
 import com.playercombatassistant.pca.modifiers.ModifierType
+import com.playercombatassistant.pca.improvised.Handedness
 import com.playercombatassistant.pca.improvised.ImprovisedWeaponResult
 import com.playercombatassistant.pca.improvised.ImprovisedWeaponViewModel
 import com.playercombatassistant.pca.improvised.LocationTable
 import com.playercombatassistant.pca.improvised.Rarity
 import com.playercombatassistant.pca.history.ImprovisedWeaponRollOrigin
+import com.playercombatassistant.pca.history.CombatHistoryStore
+import com.playercombatassistant.pca.history.CombatHistoryEvent
 import com.playercombatassistant.pca.settings.SettingsViewModel
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.rememberCoroutineScope
 import com.playercombatassistant.pca.ui.adaptive.LocalWindowSizeClass
 import com.playercombatassistant.pca.ui.components.RoundTrackerBar
 import com.playercombatassistant.pca.ui.icons.ImprovisedWeaponIcon
@@ -114,13 +121,15 @@ fun CombatScreen(
     improvisedWeaponViewModel: ImprovisedWeaponViewModel = viewModel(),
     effectsViewModel: EffectsViewModel = viewModel(),
 ) {
+    val context = LocalContext.current
+    val historyStore = remember { CombatHistoryStore(context) }
+    val coroutineScope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
     val widthClass = LocalWindowSizeClass.current?.widthSizeClass ?: WindowWidthSizeClass.Compact
 
     val availableTables by improvisedWeaponViewModel.availableTables.collectAsStateWithLifecycle()
     val currentLocation by improvisedWeaponViewModel.currentLocation.collectAsStateWithLifecycle()
-    val lastD30Roll by improvisedWeaponViewModel.lastD30Roll.collectAsStateWithLifecycle()
     val lastWeaponResult by improvisedWeaponViewModel.lastWeaponResult.collectAsStateWithLifecycle()
     val weaponRollingDisabledMessage by improvisedWeaponViewModel.weaponRollingDisabledMessage.collectAsStateWithLifecycle()
 
@@ -154,7 +163,48 @@ fun CombatScreen(
                 val nextRound = state.round + 1
                 viewModel.nextRound()
                 // Update effects view model when round advances (nextRound increments by 1)
-                effectsViewModel.processNextRound(nextRound)
+                val expiredResult = effectsViewModel.processNextRound(nextRound)
+                // Record expired effects in history
+                val sessionId = state.sessionId
+                if (sessionId != null) {
+                    val now = System.currentTimeMillis()
+                    coroutineScope.launch {
+                        for (expired in expiredResult.expiredEffects) {
+                            historyStore.recordEvent(
+                                sessionId = sessionId,
+                                event = CombatHistoryEvent.EffectExpired(
+                                    timestampMillis = now,
+                                    round = nextRound,
+                                    effect = expired,
+                                ),
+                                startedAtMillisIfNew = now,
+                            )
+                        }
+                        for (expired in expiredResult.expiredGenericEffects) {
+                            // Convert GenericEffect to Effect for history
+                            val effect = Effect(
+                                id = expired.id,
+                                name = expired.name,
+                                system = GameSystem.GENERIC,
+                                description = expired.notes ?: "",
+                                remainingRounds = expired.remainingRounds,
+                                type = EffectType.TIMER,
+                                modifiers = emptyList(),
+                                startRound = expired.startRound,
+                                endRound = expired.endRound,
+                            )
+                            historyStore.recordEvent(
+                                sessionId = sessionId,
+                                event = CombatHistoryEvent.EffectExpired(
+                                    timestampMillis = now,
+                                    round = nextRound,
+                                    effect = effect,
+                                ),
+                                startedAtMillisIfNew = now,
+                            )
+                        }
+                    }
+                }
             },
             onEndCombat = {
                 viewModel.endCombat()
@@ -166,8 +216,6 @@ fun CombatScreen(
             activeEffects = activeEffects,
             activeGenericEffects = activeGenericEffects,
             currentLocationName = currentLocation?.name,
-            locationWasRandom = lastD30Roll != null,
-            lastD30Roll = lastD30Roll,
             lastWeaponResult = lastWeaponResult,
             weaponRollingDisabledMessage = weaponRollingDisabledMessage,
             availableTables = availableTables,
@@ -191,6 +239,9 @@ fun CombatScreen(
             onAddGenericEffect = { showAddEffectSheet = true },
             gameSystem = settings.gameSystem,
             effectsViewModel = effectsViewModel,
+            historyStore = historyStore,
+            sessionId = state.sessionId,
+            currentRound = state.round,
         )
 
         WindowWidthSizeClass.Medium,
@@ -210,7 +261,48 @@ fun CombatScreen(
                 val nextRound = state.round + 1
                 viewModel.nextRound()
                 // Update effects view model when round advances (nextRound increments by 1)
-                effectsViewModel.processNextRound(nextRound)
+                val expiredResult = effectsViewModel.processNextRound(nextRound)
+                // Record expired effects in history
+                val sessionId = state.sessionId
+                if (sessionId != null) {
+                    val now = System.currentTimeMillis()
+                    coroutineScope.launch {
+                        for (expired in expiredResult.expiredEffects) {
+                            historyStore.recordEvent(
+                                sessionId = sessionId,
+                                event = CombatHistoryEvent.EffectExpired(
+                                    timestampMillis = now,
+                                    round = nextRound,
+                                    effect = expired,
+                                ),
+                                startedAtMillisIfNew = now,
+                            )
+                        }
+                        for (expired in expiredResult.expiredGenericEffects) {
+                            // Convert GenericEffect to Effect for history
+                            val effect = Effect(
+                                id = expired.id,
+                                name = expired.name,
+                                system = GameSystem.GENERIC,
+                                description = expired.notes ?: "",
+                                remainingRounds = expired.remainingRounds,
+                                type = EffectType.TIMER,
+                                modifiers = emptyList(),
+                                startRound = expired.startRound,
+                                endRound = expired.endRound,
+                            )
+                            historyStore.recordEvent(
+                                sessionId = sessionId,
+                                event = CombatHistoryEvent.EffectExpired(
+                                    timestampMillis = now,
+                                    round = nextRound,
+                                    effect = effect,
+                                ),
+                                startedAtMillisIfNew = now,
+                            )
+                        }
+                    }
+                }
             },
             onEndCombat = {
                 viewModel.endCombat()
@@ -222,8 +314,6 @@ fun CombatScreen(
             activeEffects = activeEffects,
             activeGenericEffects = activeGenericEffects,
             currentLocationName = currentLocation?.name,
-            locationWasRandom = lastD30Roll != null,
-            lastD30Roll = lastD30Roll,
             lastWeaponResult = lastWeaponResult,
             weaponRollingDisabledMessage = weaponRollingDisabledMessage,
             availableTables = availableTables,
@@ -245,6 +335,9 @@ fun CombatScreen(
             onAddGenericEffect = { showAddEffectSheet = true },
             gameSystem = settings.gameSystem,
             effectsViewModel = effectsViewModel,
+            historyStore = historyStore,
+            sessionId = state.sessionId,
+            currentRound = state.round,
         )
         else -> CombatTabletLayout(
             modifier = rootModifier,
@@ -262,7 +355,48 @@ fun CombatScreen(
                 val nextRound = state.round + 1
                 viewModel.nextRound()
                 // Update effects view model when round advances (nextRound increments by 1)
-                effectsViewModel.processNextRound(nextRound)
+                val expiredResult = effectsViewModel.processNextRound(nextRound)
+                // Record expired effects in history
+                val sessionId = state.sessionId
+                if (sessionId != null) {
+                    val now = System.currentTimeMillis()
+                    coroutineScope.launch {
+                        for (expired in expiredResult.expiredEffects) {
+                            historyStore.recordEvent(
+                                sessionId = sessionId,
+                                event = CombatHistoryEvent.EffectExpired(
+                                    timestampMillis = now,
+                                    round = nextRound,
+                                    effect = expired,
+                                ),
+                                startedAtMillisIfNew = now,
+                            )
+                        }
+                        for (expired in expiredResult.expiredGenericEffects) {
+                            // Convert GenericEffect to Effect for history
+                            val effect = Effect(
+                                id = expired.id,
+                                name = expired.name,
+                                system = GameSystem.GENERIC,
+                                description = expired.notes ?: "",
+                                remainingRounds = expired.remainingRounds,
+                                type = EffectType.TIMER,
+                                modifiers = emptyList(),
+                                startRound = expired.startRound,
+                                endRound = expired.endRound,
+                            )
+                            historyStore.recordEvent(
+                                sessionId = sessionId,
+                                event = CombatHistoryEvent.EffectExpired(
+                                    timestampMillis = now,
+                                    round = nextRound,
+                                    effect = effect,
+                                ),
+                                startedAtMillisIfNew = now,
+                            )
+                        }
+                    }
+                }
             },
             onEndCombat = {
                 viewModel.endCombat()
@@ -274,8 +408,6 @@ fun CombatScreen(
             activeEffects = activeEffects,
             activeGenericEffects = activeGenericEffects,
             currentLocationName = currentLocation?.name,
-            locationWasRandom = lastD30Roll != null,
-            lastD30Roll = lastD30Roll,
             lastWeaponResult = lastWeaponResult,
             weaponRollingDisabledMessage = weaponRollingDisabledMessage,
             availableTables = availableTables,
@@ -297,6 +429,9 @@ fun CombatScreen(
             onAddGenericEffect = { showAddEffectSheet = true },
             gameSystem = settings.gameSystem,
             effectsViewModel = effectsViewModel,
+            historyStore = historyStore,
+            sessionId = state.sessionId,
+            currentRound = state.round,
         )
     }
 
@@ -308,19 +443,51 @@ fun CombatScreen(
             currentGameSystem = settings.gameSystem,
             currentRound = state.round,
             effectsViewModel = effectsViewModel,
+            historyStore = historyStore,
+            sessionId = state.sessionId,
+            inCombat = state.inCombat,
             onDismiss = { showAddEffectSheet = false },
             onAdd = { name, duration, colorId, notes, modifierType, modifierTarget, modifierValue ->
                 val durationRounds = duration
+                val currentRound = state.round
                 effectsViewModel.addGenericEffect(
                     name = name,
                     notes = notes,
                     colorId = colorId,
                     durationRounds = durationRounds,
-                    round = state.round,
+                    round = currentRound,
                     modifierType = modifierType,
                     modifierTarget = modifierTarget,
                     modifierValue = modifierValue,
                 )
+                // Record effect applied in history
+                val sessionId = state.sessionId
+                if (sessionId != null && state.inCombat) {
+                    val now = System.currentTimeMillis()
+                    coroutineScope.launch {
+                        // Convert GenericEffect to Effect for history
+                        val effect = Effect(
+                            id = UUID.randomUUID().toString(),
+                            name = name,
+                            system = GameSystem.GENERIC,
+                            description = notes ?: "",
+                            remainingRounds = durationRounds,
+                            type = EffectType.TIMER,
+                            modifiers = emptyList(),
+                            startRound = currentRound,
+                            endRound = durationRounds?.let { currentRound + it },
+                        )
+                        historyStore.recordEvent(
+                            sessionId = sessionId,
+                            event = CombatHistoryEvent.EffectApplied(
+                                timestampMillis = now,
+                                round = currentRound,
+                                effect = effect,
+                            ),
+                            startedAtMillisIfNew = now,
+                        )
+                    }
+                }
                 showAddEffectSheet = false
             },
         )
@@ -343,8 +510,6 @@ private fun CombatPhoneLayout(
     showModifierSummary: Boolean,
     modifierSummary: List<ModifierAggregation.TargetAggregation>,
     currentLocationName: String?,
-    locationWasRandom: Boolean,
-    lastD30Roll: Int?,
     lastWeaponResult: ImprovisedWeaponResult?,
     weaponRollingDisabledMessage: String?,
     availableTables: List<LocationTable>,
@@ -355,6 +520,9 @@ private fun CombatPhoneLayout(
     onAddGenericEffect: () -> Unit,
     gameSystem: GameSystem,
     effectsViewModel: EffectsViewModel,
+    historyStore: CombatHistoryStore?,
+    sessionId: String?,
+    currentRound: Int,
 ) {
     Row(
         modifier = modifier.fillMaxSize(),
@@ -393,17 +561,15 @@ private fun CombatPhoneLayout(
                 ImprovisedWeaponSection(
                     modifier = Modifier.fillMaxWidth(),
                     collapsible = false,
-                    pinControls = false,
-                    currentLocationName = currentLocationName,
-                    locationWasRandom = locationWasRandom,
-                    lastD30Roll = lastD30Roll,
-                    lastWeaponResult = lastWeaponResult,
-                    weaponRollingDisabledMessage = weaponRollingDisabledMessage,
-                    availableTables = availableTables,
-                    onSelectLocation = onSelectLocation,
-                    onRollRandomLocation = onRollRandomLocation,
-                    onRollNewWeapon = onRollNewWeapon,
-                )
+                pinControls = false,
+                currentLocationName = currentLocationName,
+                lastWeaponResult = lastWeaponResult,
+                weaponRollingDisabledMessage = weaponRollingDisabledMessage,
+                availableTables = availableTables,
+                onSelectLocation = onSelectLocation,
+                onRollRandomLocation = onRollRandomLocation,
+                onRollNewWeapon = onRollNewWeapon,
+            )
             }
             CollapsibleContainer(
                 title = "Active Effects",
@@ -412,15 +578,19 @@ private fun CombatPhoneLayout(
             ) {
                 ActiveEffectsCard(
                     modifier = Modifier.fillMaxWidth(),
-                    activeEffects = activeEffects,
-                    activeGenericEffects = activeGenericEffects,
-                    currentRound = round,
-                    onAddGenericEffect = onAddGenericEffect,
+                activeEffects = activeEffects,
+                activeGenericEffects = activeGenericEffects,
+                currentRound = round,
+                onAddGenericEffect = onAddGenericEffect,
                     effectsViewModel = effectsViewModel,
                 )
             }
             SpellSlotTrackerContainer(
                 modifier = phoneContainerModifier,
+                historyStore = historyStore,
+                sessionId = sessionId,
+                currentRound = currentRound,
+                inCombat = inCombat,
             )
             if (showModifierSummary) {
                 ModifierSummaryCard(
@@ -478,8 +648,6 @@ private fun CombatTabletLayout(
     showModifierSummary: Boolean,
     modifierSummary: List<ModifierAggregation.TargetAggregation>,
     currentLocationName: String?,
-    locationWasRandom: Boolean,
-    lastD30Roll: Int?,
     lastWeaponResult: ImprovisedWeaponResult?,
     weaponRollingDisabledMessage: String?,
     availableTables: List<LocationTable>,
@@ -490,15 +658,26 @@ private fun CombatTabletLayout(
     onAddGenericEffect: () -> Unit,
     gameSystem: GameSystem,
     effectsViewModel: EffectsViewModel,
+    historyStore: CombatHistoryStore?,
+    sessionId: String?,
+    currentRound: Int,
 ) {
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxSize(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // LEFT COLUMN: Combat Controls, Aggregated modifiers, Active Effects, Spell Slot Tracker, Improvised Weapons
+        val leftScrollState = rememberScrollState()
         Column(
-            modifier = Modifier.weight(0.45f),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .verticalScroll(leftScrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            val tabletContainerModifier = Modifier.fillMaxWidth()
+
+            // Combat Controls (includes aggregated modifier display)
             CombatStatusAndControlsCard(
                 stateLabel = stateLabel,
                 round = round,
@@ -511,35 +690,14 @@ private fun CombatTabletLayout(
                 activeEffects = activeEffects,
                 activeGenericEffects = activeGenericEffects,
                 gameSystem = gameSystem,
+                modifier = tabletContainerModifier,
             )
-            CollapsibleContainer(
-                title = "Improvised Weapon",
-                stateKey = "combat_improvised_weapon_tablet",
-            ) {
-                ImprovisedWeaponSection(
-                    collapsible = false,
-                    pinControls = true,
-                    currentLocationName = currentLocationName,
-                    locationWasRandom = locationWasRandom,
-                    lastD30Roll = lastD30Roll,
-                    lastWeaponResult = lastWeaponResult,
-                    weaponRollingDisabledMessage = weaponRollingDisabledMessage,
-                    availableTables = availableTables,
-                    onSelectLocation = onSelectLocation,
-                    onRollRandomLocation = onRollRandomLocation,
-                    onRollNewWeapon = onRollNewWeapon,
-                )
-            }
-        }
 
-        Column(
-            modifier = Modifier.weight(0.5f),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+            // Active Effects
             CollapsibleContainer(
                 title = "Active Effects",
                 stateKey = "combat_active_effects_tablet",
-                modifier = Modifier.fillMaxWidth(),
+                modifier = tabletContainerModifier,
             ) {
                 ActiveEffectsCard(
                     modifier = Modifier.fillMaxWidth(),
@@ -550,20 +708,38 @@ private fun CombatTabletLayout(
                     effectsViewModel = effectsViewModel,
                 )
             }
+
+            // Spell Slot Tracker
             SpellSlotTrackerContainer(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = tabletContainerModifier,
+                historyStore = historyStore,
+                sessionId = sessionId,
+                currentRound = currentRound,
+                inCombat = inCombat,
             )
-            if (showModifierSummary) {
-                ModifierSummaryCard(
-                    modifier = Modifier.weight(1f),
-                    summary = modifierSummary,
-                )
-            } else {
-                ModifierSummaryUnavailableCard()
+
+            // Improvised Weapons
+            CollapsibleContainer(
+                title = "Improvised Weapon",
+                stateKey = "combat_improvised_weapon_tablet",
+                modifier = tabletContainerModifier,
+            ) {
+            ImprovisedWeaponSection(
+                    modifier = Modifier.fillMaxWidth(),
+                collapsible = false,
+                pinControls = true,
+                currentLocationName = currentLocationName,
+                lastWeaponResult = lastWeaponResult,
+                weaponRollingDisabledMessage = weaponRollingDisabledMessage,
+                availableTables = availableTables,
+                onSelectLocation = onSelectLocation,
+                onRollRandomLocation = onRollRandomLocation,
+                onRollNewWeapon = onRollNewWeapon,
+            )
             }
         }
 
-        // RoundTrackerBar on the right side for tablet
+        // RIGHT COLUMN: Combat Round Tracker only
         // Convert Effect objects to GenericEffect for display
         val allEffectsForTrackerTablet = remember(activeEffects, activeGenericEffects) {
             val convertedEffects = activeEffects.map { effect ->
@@ -585,11 +761,16 @@ private fun CombatTabletLayout(
             }
             activeGenericEffects + convertedEffects
         }
+
         Column(
-            modifier = Modifier.weight(0.05f),
+            modifier = Modifier
+                .weight(0.25f)
+                .fillMaxHeight(),
         ) {
             RoundTrackerBar(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(),
                 currentRound = round,
                 effects = allEffectsForTrackerTablet,
             )
@@ -714,8 +895,6 @@ private fun ImprovisedWeaponSection(
     collapsible: Boolean,
     pinControls: Boolean,
     currentLocationName: String?,
-    locationWasRandom: Boolean,
-    lastD30Roll: Int?,
     lastWeaponResult: ImprovisedWeaponResult?,
     weaponRollingDisabledMessage: String?,
     availableTables: List<LocationTable>,
@@ -723,103 +902,79 @@ private fun ImprovisedWeaponSection(
     onRollRandomLocation: () -> Unit,
     onRollNewWeapon: () -> Unit,
 ) {
-    // Phone: collapsible to keep the screen compact. Tablet: always expanded/persistently visible.
-    var expanded by rememberSaveable(collapsible) { mutableStateOf(!collapsible) }
-
     Card(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Top section: Controls - all buttons stacked vertically
+            var showLocationPicker by remember { mutableStateOf(false) }
+            val isDisabled = weaponRollingDisabledMessage != null
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                ImprovisedWeaponIcon(
-                    contentDescription = "Improvised weapon",
-                    useMonochrome = weaponRollingDisabledMessage != null,
-                    modifier = Modifier.width(20.dp).height(20.dp),
-                    tint = if (weaponRollingDisabledMessage != null) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.primary
+                // 1) Location selector
+                FilledTonalButton(
+                    onClick = { showLocationPicker = true },
+                    enabled = !isDisabled,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.EditLocationAlt,
+                        contentDescription = "Select location",
+                        modifier = Modifier.width(18.dp).height(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = currentLocationName ?: "Select Location",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+
+                // 2) Random Location button
+                OutlinedButton(
+                    onClick = onRollRandomLocation,
+                    enabled = !isDisabled,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Casino,
+                        contentDescription = "Random location",
+                        modifier = Modifier.width(18.dp).height(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Random")
+                }
+
+                // 3) Generate Weapon button (primary action)
+                Button(
+                    onClick = onRollNewWeapon,
+                    enabled = !isDisabled && currentLocationName != null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Generate Weapon")
+                }
+            }
+
+            if (showLocationPicker) {
+                LocationPickerBottomSheet(
+                    availableTables = availableTables,
+                    onPick = { table ->
+                        onSelectLocation(table.id)
+                        showLocationPicker = false
                     },
+                    onDismiss = { showLocationPicker = false },
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Improvised Weapon",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                )
-                if (collapsible) {
-                    IconButton(onClick = { expanded = !expanded }) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                            contentDescription = if (expanded) "Collapse" else "Expand",
-                        )
-                    }
-                }
             }
 
-            // Always-visible summary row(s) (same data; layout-only difference).
-            Text(
-                text = "Location: ${currentLocationName ?: "—"}",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Text(
-                text = "Last d100: " + (lastWeaponResult?.d100Roll?.toString() ?: "—"),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            if (expanded) {
-                val scrollState = rememberScrollState()
-
-                // Details may scroll on tablet; controls stay visible (pinned).
-                val detailsModifier = if (pinControls) {
-                    Modifier
-                        .weight(1f, fill = false)
-                        .verticalScroll(scrollState)
-                } else {
-                    Modifier
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ImprovisedWeaponDetails(
-                        modifier = detailsModifier,
-                        currentLocationName = currentLocationName,
-                        locationWasRandom = locationWasRandom,
-                        lastD30Roll = lastD30Roll,
-                        lastWeaponResult = lastWeaponResult,
-                        weaponRollingDisabledMessage = weaponRollingDisabledMessage,
-                    )
-
-                    ImprovisedWeaponControls(
-                        weaponRollingDisabledMessage = weaponRollingDisabledMessage,
-                        availableTables = availableTables,
-                        onSelectLocation = onSelectLocation,
-                        onRollRandomLocation = onRollRandomLocation,
-                        onRollNewWeapon = onRollNewWeapon,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ImprovisedWeaponDetails(
-    modifier: Modifier = Modifier,
-    currentLocationName: String?,
-    locationWasRandom: Boolean,
-    lastD30Roll: Int?,
-    lastWeaponResult: ImprovisedWeaponResult?,
-    weaponRollingDisabledMessage: String?,
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Error message if disabled
         if (weaponRollingDisabledMessage != null) {
             Text(
                 text = weaponRollingDisabledMessage,
@@ -827,110 +982,78 @@ private fun ImprovisedWeaponDetails(
                 color = MaterialTheme.colorScheme.error,
             )
         }
+
+            // Weapon result display
+            if (lastWeaponResult != null) {
+                val item = lastWeaponResult.item
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        // Weapon name (bold)
         Text(
-            text = "Mode: " + if (currentLocationName == null) "—" else if (locationWasRandom) "Random (d30)" else "Manual",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+                            text = item.name.ifBlank { "Improvised Weapon" },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
 
-        if (lastD30Roll != null) {
+                        // Damage and handedness
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            if (item.damage.isNotBlank()) {
             Text(
-                text = "Last d30: $lastD30Roll",
+                                    text = "Damage: ${item.damage}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            val item: ImprovisedItem? = lastWeaponResult?.item
             Text(
-                text = item?.description ?: "No weapon rolled yet.",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (item != null) FontWeight.Medium else FontWeight.Normal,
-            )
+                                text = when (item.handedness) {
+                                    Handedness.ONE_HANDED -> "One-handed"
+                                    Handedness.TWO_HANDED -> "Two-handed"
+                                    Handedness.VERSATILE -> "Versatile"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
 
-            if (item != null) {
-                RarityBadge(rarity = item.rarity)
-            }
-    }
-}
+                        // Description
+                        if (item.description.isNotBlank()) {
+                            Text(
+                                text = item.description,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
 
-@Composable
-private fun ImprovisedWeaponControls(
-    weaponRollingDisabledMessage: String?,
-    availableTables: List<LocationTable>,
-    onSelectLocation: (Int) -> Unit,
-    onRollRandomLocation: () -> Unit,
-    onRollNewWeapon: () -> Unit,
-) {
-    var showLocationPicker by remember { mutableStateOf(false) }
-    val isDisabled = weaponRollingDisabledMessage != null
-
-    if (showLocationPicker) {
-        LocationPickerBottomSheet(
-            availableTables = availableTables,
-            onPick = { table ->
-                onSelectLocation(table.id)
-                showLocationPicker = false
-            },
-            onDismiss = { showLocationPicker = false },
-        )
-    }
-
-    // Unified vertical button group with consistent sizing and spacing
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // Select Location - FilledTonalButton
-        FilledTonalButton(
-            onClick = { showLocationPicker = true },
-            enabled = !isDisabled,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.EditLocationAlt,
-                contentDescription = "Select location",
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Select Location")
-        }
-
-        // Random Location - FilledTonalButton (same style as Select Location)
-        FilledTonalButton(
-            onClick = onRollRandomLocation,
-            enabled = !isDisabled,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Casino,
-                contentDescription = "Roll random location",
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Random Location")
-        }
-
-        // Random Weapon - Button (primary, alternate color scheme)
-        Button(
-            onClick = onRollNewWeapon,
-            enabled = !isDisabled,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            ImprovisedWeaponIcon(
-                contentDescription = "Roll improvised weapon",
-                useMonochrome = isDisabled,
-                tint = if (isDisabled) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                        // Notes if present
+                        if (item.notes != null && item.notes.isNotBlank()) {
+                            Text(
+                                text = item.notes,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
                 } else {
-                    MaterialTheme.colorScheme.onPrimary
-                },
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Random Weapon")
+                // Placeholder when no weapon generated
+                Text(
+                    text = "No improvised weapon selected.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1063,22 +1186,17 @@ private fun ActiveEffectsCard(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Add Effect button (primary action) - full-width at top
+            Button(
+                onClick = onAddGenericEffect,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "Active Effects",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                FilledTonalButton(onClick = onAddGenericEffect) {
-                    Text("Add Effect")
-                }
+                Text("Add Effect")
             }
-            Spacer(modifier = Modifier.height(8.dp))
 
             val allEffectsCount = activeEffects.size + activeGenericEffects.size
             if (allEffectsCount == 0) {
@@ -1407,7 +1525,7 @@ private fun ModifierSummaryCard(
 
             if (summary.isEmpty()) {
                 Text(
-                    text = "No numeric modifiers to summarize (display-only).",
+                    text = "No active modifiers.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1416,10 +1534,10 @@ private fun ModifierSummaryCard(
 
             // Use a simple Column here to avoid nested scrolling/layout constraint issues
             // when the parent screen is scrollable (e.g., compact phone layout).
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                 for (targetAgg in summary) {
                     Column {
                         Text(
@@ -1470,6 +1588,9 @@ private fun AddGenericEffectSheet(
     currentGameSystem: GameSystem,
     currentRound: Int,
     effectsViewModel: EffectsViewModel,
+    historyStore: CombatHistoryStore? = null,
+    sessionId: String? = null,
+    inCombat: Boolean = false,
     onDismiss: () -> Unit,
     onAdd: (String, Int?, EffectColorId, String?, String?, ModifierTarget?, Int?) -> Unit,
 ) {
@@ -1577,7 +1698,7 @@ private fun AddGenericEffectSheet(
 
             if (hasPinnedEffects) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
@@ -1613,6 +1734,21 @@ private fun AddGenericEffectSheet(
                                     endRound = currentRound + conditionDuration - 1,
                                 )
                                 effectsViewModel.addEffect(currentRound, conditionEffect)
+                                // Record history
+                                if (inCombat && sessionId != null && historyStore != null) {
+                                    val now = System.currentTimeMillis()
+                                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                        historyStore.recordEvent(
+                                            sessionId = sessionId,
+                                            event = CombatHistoryEvent.EffectApplied(
+                                                timestampMillis = now,
+                                                round = currentRound,
+                                                effect = conditionEffect,
+                                            ),
+                                            startedAtMillisIfNew = now,
+                                        )
+                                    }
+                                }
                                 onDismiss()
                             },
                         )
@@ -1702,7 +1838,7 @@ private fun AddGenericEffectSheet(
                 // Modifier Type dropdown (optional)
                 if (availableModifierTypes.isNotEmpty()) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
+            Text(
                             text = "Modifier Type",
                             style = MaterialTheme.typography.labelLarge,
                         )
@@ -1812,21 +1948,25 @@ private fun AddGenericEffectSheet(
                     ) {
                         OutlinedButton(
                             onClick = { modifierValue = modifierValue - 1 },
-                            modifier = Modifier.width(56.dp),
+                            modifier = Modifier
+                                .width(56.dp)
+                                .height(48.dp),
                         ) {
                             Text("-")
                         }
                         Text(
                             text = if (modifierValue >= 0) "+$modifierValue" else modifierValue.toString(),
                             style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center,
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 8.dp),
-                            textAlign = TextAlign.Center,
                         )
                         OutlinedButton(
                             onClick = { modifierValue = modifierValue + 1 },
-                            modifier = Modifier.width(56.dp),
+                            modifier = Modifier
+                                .width(56.dp)
+                                .height(48.dp),
                         ) {
                             Text("+")
                         }
@@ -1860,18 +2000,23 @@ private fun AddGenericEffectSheet(
                 ) {
                     OutlinedButton(
                         onClick = { duration = (duration - 1).coerceAtLeast(1) },
-                        modifier = Modifier.width(56.dp),
+                        modifier = Modifier
+                            .width(56.dp)
+                            .height(48.dp),
                     ) {
                         Text("-")
                     }
                     Text(
                         text = if (isIndefinite) "Indefinite" else duration.toString(),
                         style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedButton(
                         onClick = { duration = duration + 1 },
-                        modifier = Modifier.width(56.dp),
+                        modifier = Modifier
+                            .width(56.dp)
+                            .height(48.dp),
                         enabled = !isIndefinite,
                     ) {
                         Text("+")
@@ -2045,6 +2190,21 @@ private fun AddGenericEffectSheet(
                                 
                                 // Add as Effect (not GenericEffect) to preserve modifiers
                                 effectsViewModel.addEffect(currentRound, conditionEffect)
+                                // Record history
+                                if (inCombat && sessionId != null && historyStore != null) {
+                                    val now = System.currentTimeMillis()
+                                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                        historyStore.recordEvent(
+                                            sessionId = sessionId,
+                                            event = CombatHistoryEvent.EffectApplied(
+                                                timestampMillis = now,
+                                                round = currentRound,
+                                                effect = conditionEffect,
+                                            ),
+                                            startedAtMillisIfNew = now,
+                                        )
+                                    }
+                                }
                                 onDismiss()
                             },
                             modifier = Modifier.weight(1f),
@@ -2073,10 +2233,10 @@ private fun AddGenericEffectSheet(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Duration selector
-                    Text(
+        Text(
                         text = "Duration (rounds)",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+            style = MaterialTheme.typography.labelLarge,
+        )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -2088,12 +2248,12 @@ private fun AddGenericEffectSheet(
                         ) {
                             Text("-")
                         }
-                        Text(
+            Text(
                             text = spellEffectDuration.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.weight(1f),
                         )
-                        OutlinedButton(
+            OutlinedButton(
                             onClick = { spellEffectDuration = spellEffectDuration + 1 },
                             modifier = Modifier.width(56.dp),
                         ) {
@@ -2106,7 +2266,7 @@ private fun AddGenericEffectSheet(
                         value = spellEffectSearchText,
                         onValueChange = { spellEffectSearchText = it },
                         label = { Text("Search spell name") },
-                        modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
                     
@@ -2116,25 +2276,25 @@ private fun AddGenericEffectSheet(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
+            ) {
+                Text(
                             text = "Filter by level:",
                             style = MaterialTheme.typography.labelLarge,
                         )
                         OutlinedButton(
                             onClick = { spellLevelDropdownExpanded = true },
-                            modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f),
                         ) {
                             Text(
                                 text = selectedSpellLevel?.let { "Level $it" } ?: "All Levels",
                                 maxLines = 1,
-                            )
-                        }
-                        DropdownMenu(
+                )
+            }
+            DropdownMenu(
                             expanded = spellLevelDropdownExpanded,
                             onDismissRequest = { spellLevelDropdownExpanded = false },
-                        ) {
-                            DropdownMenuItem(
+            ) {
+                    DropdownMenuItem(
                                 text = { Text("All Levels") },
                                 onClick = {
                                     selectedSpellLevel = null
@@ -2214,14 +2374,14 @@ private fun AddGenericEffectSheet(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.Start,
                                 ) {
-                                    Text(
+                                Text(
                                         text = spellEffect.name,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                    )
-                                    Text(
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
                                         text = "Level ${spellEffect.spellLevel}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
                             }
@@ -2331,7 +2491,7 @@ private fun AddGenericEffectSheet(
                                     // Determine duration: 0 for passive, user-selected for timed
                                     val finalDuration = if (isPassive) {
                                         0 // Passive effects don't decrement
-                                    } else {
+        } else {
                                         featAbilityDuration
                                     }
                                     
@@ -2354,19 +2514,19 @@ private fun AddGenericEffectSheet(
                                     onDismiss()
                                 },
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Column(
+    ) {
+        Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.Start,
                                 ) {
-                                    Text(
+            Text(
                                         text = featAbility.name,
-                                        style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge,
                                     )
                                     Text(
                                         text = if (isPassive) {
                                             "Passive (persists until End Combat)"
-                                        } else {
+                } else {
                                             "Timed (${featAbility.defaultDuration} rounds default)"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
@@ -2387,16 +2547,16 @@ private fun AddGenericEffectSheet(
                     }
                     
                     if (filteredFeatAbilities.isEmpty()) {
-                        Text(
+            Text(
                             text = if (featAbilitySearchText.isNotBlank()) {
                                 "No feats/abilities found matching your search."
-                            } else {
+                } else {
                                 "No feats/abilities available."
-                            },
+                },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp),
-                        )
+            )
                     }
                 }
             }
@@ -2489,7 +2649,7 @@ private fun EditEffectDialog(
                         }
                     },
                 )
-                Text(
+            Text(
                     text = "Indefinite duration",
                     modifier = Modifier.clickable { isIndefinite = !isIndefinite },
                 )
@@ -2538,8 +2698,8 @@ private fun EditGenericEffectDialog(
         sheetState = sheetState,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -2587,7 +2747,7 @@ private fun EditGenericEffectDialog(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(
-                    onClick = {
+                        onClick = {
                         val current = remainingRoundsText.toIntOrNull() ?: 1
                         if (current > 1) {
                             remainingRoundsText = (current - 1).toString()
@@ -2619,7 +2779,7 @@ private fun EditGenericEffectDialog(
                         isIndefinite = checked
                         if (checked) {
                             remainingRoundsText = ""
-                        } else {
+                            } else {
                             remainingRoundsText = "1"
                         }
                     },
@@ -2708,6 +2868,10 @@ private fun PinnedEffectItem(
 @Composable
 private fun SpellSlotTrackerContainer(
     modifier: Modifier = Modifier,
+    historyStore: CombatHistoryStore? = null,
+    sessionId: String? = null,
+    currentRound: Int = 0,
+    inCombat: Boolean = false,
 ) {
     val viewModel: SpellcastingSourceViewModel = viewModel()
     val sources by viewModel.sources.collectAsStateWithLifecycle()
@@ -2756,7 +2920,7 @@ private fun SpellSlotTrackerContainer(
         } else {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 // Display slots grouped by source
                 sources.forEach { source ->
@@ -2768,7 +2932,7 @@ private fun SpellSlotTrackerContainer(
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Surface(
                                 modifier = Modifier
@@ -2788,11 +2952,11 @@ private fun SpellSlotTrackerContainer(
                         for (level in 0..9) {
                             val levelSlots = source.slotsByLevel[level] ?: emptyList()
                             if (levelSlots.isNotEmpty()) {
-                                Column(
+            Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                                ) {
-                                    Text(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
                                         text = "Level $level",
                                         style = MaterialTheme.typography.labelMedium,
                                     )
@@ -2803,7 +2967,35 @@ private fun SpellSlotTrackerContainer(
                                         levelSlots.forEachIndexed { index, isAvailable ->
                                             SpellSlotButton(
                                                 isAvailable = isAvailable,
-                                                onClick = { viewModel.toggleSlot(source.id, level, index) },
+                                                onClick = {
+                                                    // Record history before toggling
+                                                    if (inCombat && sessionId != null && historyStore != null) {
+                                                        val now = System.currentTimeMillis()
+                                                        val event = if (isAvailable) {
+                                                            CombatHistoryEvent.SpellSlotUsed(
+                                                                timestampMillis = now,
+                                                                round = currentRound,
+                                                                sourceName = source.name,
+                                                                level = level,
+                                                            )
+                                                        } else {
+                                                            CombatHistoryEvent.SpellSlotRecovered(
+                                                                timestampMillis = now,
+                                                                round = currentRound,
+                                                                sourceName = source.name,
+                                                                level = level,
+                                                            )
+                                                        }
+                                                        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                                            historyStore.recordEvent(
+                                                                sessionId = sessionId,
+                                                                event = event,
+                                                                startedAtMillisIfNew = now,
+                                                            )
+                                                        }
+                                                    }
+                                                    viewModel.toggleSlot(source.id, level, index)
+                                                },
                                                 modifier = Modifier.weight(1f),
                                                 sourceColor = source.color,
                                             )

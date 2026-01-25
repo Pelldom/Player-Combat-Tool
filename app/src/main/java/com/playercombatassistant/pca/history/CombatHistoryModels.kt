@@ -95,5 +95,23 @@ sealed class CombatHistoryEvent {
         val d100Roll: Int,
         val item: ImprovisedItem,
     ) : CombatHistoryEvent()
+
+    @Serializable
+    @SerialName("spell_slot_used")
+    data class SpellSlotUsed(
+        override val timestampMillis: Long,
+        override val round: Int?,
+        val sourceName: String,
+        val level: Int,
+    ) : CombatHistoryEvent()
+
+    @Serializable
+    @SerialName("spell_slot_recovered")
+    data class SpellSlotRecovered(
+        override val timestampMillis: Long,
+        override val round: Int?,
+        val sourceName: String,
+        val level: Int,
+    ) : CombatHistoryEvent()
 }
 

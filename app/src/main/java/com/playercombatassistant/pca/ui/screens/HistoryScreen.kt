@@ -134,7 +134,7 @@ private fun SessionCard(
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
                 text = "Combat Session $sessionNumber",
@@ -169,8 +169,13 @@ private fun EventRow(event: CombatHistoryEvent, showRarity: Boolean) {
         is CombatHistoryEvent.StartCombat -> "${roundPrefix}Start Combat"
         is CombatHistoryEvent.NextRound -> "${roundPrefix}Next Round"
         is CombatHistoryEvent.EndCombat -> "${roundPrefix}End Combat"
-        is CombatHistoryEvent.EffectApplied -> "${roundPrefix}Effect applied: ${event.effect.name}"
-        is CombatHistoryEvent.EffectExpired -> "${roundPrefix}Effect expired: ${event.effect.name}"
+        is CombatHistoryEvent.EffectApplied -> {
+            val durationText = event.effect.remainingRounds?.let { " ($it rounds)" } ?: ""
+            "${roundPrefix}Applied Effect — ${event.effect.name}$durationText"
+        }
+        is CombatHistoryEvent.EffectExpired -> "${roundPrefix}Effect Expired — ${event.effect.name}"
+        is CombatHistoryEvent.SpellSlotUsed -> "${roundPrefix}Spell Slot Used — ${event.sourceName} Level ${event.level}"
+        is CombatHistoryEvent.SpellSlotRecovered -> "${roundPrefix}Spell Slot Recovered — ${event.sourceName} Level ${event.level}"
         is CombatHistoryEvent.ImprovisedSelected ->
             if (showRarity) {
                 "${roundPrefix}Improvised: ${event.item.description} (${event.item.rarity})"

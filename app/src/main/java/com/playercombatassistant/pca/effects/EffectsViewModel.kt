@@ -10,6 +10,14 @@ import kotlinx.coroutines.flow.update
 import java.util.UUID
 
 /**
+ * Result of processing a round, containing expired effects for history recording.
+ */
+data class RoundProcessingResult(
+    val expiredEffects: List<Effect>,
+    val expiredGenericEffects: List<GenericEffect>,
+)
+
+/**
  * ViewModel for managing combat effects with round tracking.
  *
  * Responsibilities:
@@ -138,7 +146,13 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
      * - No system-specific logic
      * - State updates trigger recomposition via StateFlow
      */
-    fun onNextRound(currentRound: Int) {
+    /**
+     * Process generic effects for a new round.
+     * Decrements remainingRounds and expires effects that reach 0.
+     *
+     * @return List of expired generic effects for history recording
+     */
+    fun onNextRound(currentRound: Int): List<GenericEffect> {
         this.currentRound = currentRound
 
         val activeGeneric = mutableListOf<GenericEffect>()
@@ -168,6 +182,8 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
         // Update state - this will trigger recomposition
         _activeGenericEffects.value = activeGeneric
         _expiredGenericEffects.update { it + expiredGeneric }
+
+        return expiredGeneric
     }
 
     /**
@@ -221,8 +237,10 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
      * - Driven entirely by Next Round events (no automatic ticking)
      * - No rule enforcement (just tracking)
      * - Generic effects don't have remainingRounds, they just expire when endRound < currentRound
+     *
+     * @return RoundProcessingResult containing expired effects for history recording
      */
-    fun processNextRound(newRound: Int) {
+    fun processNextRound(newRound: Int): RoundProcessingResult {
         currentRound = newRound
 
         // Process system-specific effects
@@ -248,7 +266,12 @@ class EffectsViewModel(application: Application) : AndroidViewModel(application)
         _expiredEffects.update { it + expired }
 
         // Process generic effects using onNextRound for round-based ticking
-        onNextRound(newRound)
+        val expiredGeneric = onNextRound(newRound)
+
+        return RoundProcessingResult(
+            expiredEffects = expired,
+            expiredGenericEffects = expiredGeneric,
+        )
     }
 
     /**
