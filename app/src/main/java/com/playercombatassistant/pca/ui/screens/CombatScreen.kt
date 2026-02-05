@@ -56,8 +56,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -192,6 +190,7 @@ fun CombatScreen(
                                 modifiers = emptyList(),
                                 startRound = expired.startRound,
                                 endRound = expired.endRound,
+                                colorId = expired.colorId,
                             )
                             historyStore.recordEvent(
                                 sessionId = sessionId,
@@ -290,6 +289,7 @@ fun CombatScreen(
                                 modifiers = emptyList(),
                                 startRound = expired.startRound,
                                 endRound = expired.endRound,
+                                colorId = expired.colorId,
                             )
                             historyStore.recordEvent(
                                 sessionId = sessionId,
@@ -384,6 +384,7 @@ fun CombatScreen(
                                 modifiers = emptyList(),
                                 startRound = expired.startRound,
                                 endRound = expired.endRound,
+                                colorId = expired.colorId,
                             )
                             historyStore.recordEvent(
                                 sessionId = sessionId,
@@ -476,6 +477,7 @@ fun CombatScreen(
                             modifiers = emptyList(),
                             startRound = currentRound,
                             endRound = durationRounds?.let { currentRound + it },
+                            colorId = colorId,
                         )
                         historyStore.recordEvent(
                             sessionId = sessionId,
@@ -604,16 +606,11 @@ private fun CombatPhoneLayout(
         // Convert Effect objects to GenericEffect for display
         val allEffectsForTracker = remember(activeEffects, activeGenericEffects) {
             val convertedEffects = activeEffects.map { effect ->
-                // Map EffectType to EffectColorId (matching EffectListItem logic)
-                val colorId = when (effect.type) {
-                    EffectType.CONDITION -> EffectColorId.ERROR
-                    EffectType.TIMER -> EffectColorId.PRIMARY
-                }
                 GenericEffect(
                     id = effect.id,
                     name = effect.name,
                     notes = effect.description.takeIf { it.isNotBlank() },
-                    colorId = colorId,
+                    colorId = effect.colorId,
                     startRound = effect.startRound,
                     durationRounds = effect.remainingRounds,
                     endRound = effect.endRound,
@@ -743,16 +740,11 @@ private fun CombatTabletLayout(
         // Convert Effect objects to GenericEffect for display
         val allEffectsForTrackerTablet = remember(activeEffects, activeGenericEffects) {
             val convertedEffects = activeEffects.map { effect ->
-                // Map EffectType to EffectColorId (matching EffectListItem logic)
-                val colorId = when (effect.type) {
-                    EffectType.CONDITION -> EffectColorId.ERROR
-                    EffectType.TIMER -> EffectColorId.PRIMARY
-                }
                 GenericEffect(
                     id = effect.id,
                     name = effect.name,
                     notes = effect.description.takeIf { it.isNotBlank() },
-                    colorId = colorId,
+                    colorId = effect.colorId,
                     startRound = effect.startRound,
                     durationRounds = effect.remainingRounds,
                     endRound = effect.endRound,
@@ -1595,21 +1587,34 @@ private fun AddGenericEffectSheet(
     onAdd: (String, Int?, EffectColorId, String?, String?, ModifierTarget?, Int?) -> Unit,
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val pinnedEffectsViewModel: PinnedEffectsViewModel = viewModel()
     val pinnedEffectIds by pinnedEffectsViewModel.pinnedEffectIds.collectAsStateWithLifecycle()
     val conditions = remember {
-        Pf1ConditionRepository(context).getAllConditions()
-            .sortedBy { it.name }
+        try {
+            Pf1ConditionRepository(context).getAllConditions()
+                .sortedBy { it.name }
+        } catch (e: Exception) {
+            emptyList<ConditionDefinition>()
+        }
     }
     
     // Load spell effects (repository already filters to PF1 only)
     val allSpellEffects = remember {
-        Pf1SpellEffectRepository(context).getAllSpellEffects()
+        try {
+            Pf1SpellEffectRepository(context).getAllSpellEffects()
+        } catch (e: Exception) {
+            emptyList<SpellEffectDefinition>()
+        }
     }
     
     // Load feats/abilities (repository already filters to PF1 only)
     val allFeatAbilities = remember {
-        Pf1FeatAbilityRepository(context).getAllFeatAbilities()
+        try {
+            Pf1FeatAbilityRepository(context).getAllFeatAbilities()
+        } catch (e: Exception) {
+            emptyList<FeatAbilityDefinition>()
+        }
     }
     
     // Load modifier types filtered by current game system
@@ -1732,12 +1737,13 @@ private fun AddGenericEffectSheet(
                                     modifiers = effectModifiers,
                                     startRound = currentRound,
                                     endRound = currentRound + conditionDuration - 1,
+                                    colorId = condition.defaultColorId ?: EffectColorId.PRIMARY,
                                 )
                                 effectsViewModel.addEffect(currentRound, conditionEffect)
                                 // Record history
                                 if (inCombat && sessionId != null && historyStore != null) {
                                     val now = System.currentTimeMillis()
-                                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    coroutineScope.launch {
                                         historyStore.recordEvent(
                                             sessionId = sessionId,
                                             event = CombatHistoryEvent.EffectApplied(
@@ -1769,17 +1775,18 @@ private fun AddGenericEffectSheet(
                                         source = spellEffect.name,
                                     )
                                 }
-                                val spellEffectInstance = Effect(
-                                    id = UUID.randomUUID().toString(),
-                                    name = spellEffect.name,
-                                    system = spellEffect.system,
-                                    description = spellEffect.description,
-                                    remainingRounds = spellEffectDuration,
-                                    type = EffectType.CONDITION,
-                                    modifiers = effectModifiers,
-                                    startRound = currentRound,
-                                    endRound = currentRound + spellEffectDuration - 1,
-                                )
+                                    val spellEffectInstance = Effect(
+                                        id = UUID.randomUUID().toString(),
+                                        name = spellEffect.name,
+                                        system = spellEffect.system,
+                                        description = spellEffect.description,
+                                        remainingRounds = spellEffectDuration,
+                                        type = EffectType.CONDITION,
+                                        modifiers = effectModifiers,
+                                        startRound = currentRound,
+                                        endRound = currentRound + spellEffectDuration - 1,
+                                        colorId = spellEffect.defaultColorId ?: EffectColorId.PRIMARY,
+                                    )
                                 effectsViewModel.addEffect(currentRound, spellEffectInstance)
                                 onDismiss()
                             },
@@ -1807,17 +1814,18 @@ private fun AddGenericEffectSheet(
                                     )
                                 }
                                 val finalDuration = if (isPassive) 0 else featAbilityDuration
-                                val featAbilityInstance = Effect(
-                                    id = UUID.randomUUID().toString(),
-                                    name = featAbility.name,
-                                    system = featAbility.system,
-                                    description = featAbility.description,
-                                    remainingRounds = if (isPassive) null else finalDuration,
-                                    type = EffectType.CONDITION,
-                                    modifiers = effectModifiers,
-                                    startRound = currentRound,
-                                    endRound = if (isPassive) null else (currentRound + finalDuration - 1),
-                                )
+                                    val featAbilityInstance = Effect(
+                                        id = UUID.randomUUID().toString(),
+                                        name = featAbility.name,
+                                        system = featAbility.system,
+                                        description = featAbility.description,
+                                        remainingRounds = if (isPassive) null else finalDuration,
+                                        type = EffectType.CONDITION,
+                                        modifiers = effectModifiers,
+                                        startRound = currentRound,
+                                        endRound = if (isPassive) null else (currentRound + finalDuration - 1),
+                                        colorId = featAbility.defaultColorId ?: EffectColorId.PRIMARY,
+                                    )
                                 effectsViewModel.addEffect(currentRound, featAbilityInstance)
                                 onDismiss()
                             },
@@ -2124,9 +2132,7 @@ private fun AddGenericEffectSheet(
             } else if (selectedTabIndex == 1) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
@@ -2186,6 +2192,7 @@ private fun AddGenericEffectSheet(
                                     modifiers = effectModifiers,
                                     startRound = currentRound,
                                     endRound = currentRound + conditionDuration - 1,
+                                    colorId = condition.defaultColorId ?: EffectColorId.PRIMARY,
                                 )
                                 
                                 // Add as Effect (not GenericEffect) to preserve modifiers
@@ -2193,7 +2200,7 @@ private fun AddGenericEffectSheet(
                                 // Record history
                                 if (inCombat && sessionId != null && historyStore != null) {
                                     val now = System.currentTimeMillis()
-                                    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    coroutineScope.launch {
                                         historyStore.recordEvent(
                                             sessionId = sessionId,
                                             event = CombatHistoryEvent.EffectApplied(
@@ -2227,9 +2234,7 @@ private fun AddGenericEffectSheet(
                 // Spell Effects tab
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Duration selector
@@ -2362,6 +2367,7 @@ private fun AddGenericEffectSheet(
                                         modifiers = effectModifiers,
                                         startRound = currentRound,
                                         endRound = currentRound + spellEffectDuration - 1,
+                                        colorId = spellEffect.defaultColorId,
                                     )
                                     
                                     // Add as Effect (not GenericEffect) to preserve modifiers
@@ -2414,9 +2420,7 @@ private fun AddGenericEffectSheet(
                 // Feats & Abilities tab
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 360.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     // Duration selector (only for timed abilities)
@@ -2507,6 +2511,7 @@ private fun AddGenericEffectSheet(
                                         modifiers = effectModifiers,
                                         startRound = currentRound,
                                         endRound = if (isPassive) null else (currentRound + finalDuration - 1), // null for passive
+                                        colorId = featAbility.defaultColorId,
                                     )
                                     
                                     // Add as Effect (not GenericEffect) to preserve modifiers
@@ -2873,38 +2878,11 @@ private fun SpellSlotTrackerContainer(
     currentRound: Int = 0,
     inCombat: Boolean = false,
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val viewModel: SpellcastingSourceViewModel = viewModel()
     val sources by viewModel.sources.collectAsStateWithLifecycle()
     
     val colorScheme = MaterialTheme.colorScheme
-    
-    // Migration check - prompt user once if old data exists
-    var showMigrationDialog by remember { mutableStateOf(false) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            val hasOld = viewModel.hasOldData()
-            if (hasOld && sources.isEmpty()) {
-                showMigrationDialog = true
-            }
-        }
-    }
-    
-    if (showMigrationDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showMigrationDialog = false },
-            title = { Text("Spell Slot System Updated") },
-            text = {
-                Text("The spell slot system has been updated. Please reconfigure your spellcasting sources in Settings.")
-            },
-            confirmButton = {
-                Button(
-                    onClick = { showMigrationDialog = false },
-                ) {
-                    Text("OK")
-                }
-            },
-        )
-    }
     
     CollapsibleContainer(
         title = "Spell Slots",
@@ -2986,7 +2964,7 @@ private fun SpellSlotTrackerContainer(
                                                                 level = level,
                                                             )
                                                         }
-                                                        kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                                        coroutineScope.launch {
                                                             historyStore.recordEvent(
                                                                 sessionId = sessionId,
                                                                 event = event,

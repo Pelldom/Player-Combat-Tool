@@ -49,5 +49,11 @@ data class Effect(
      *   endRound = null
      */
     val endRound: Int?,
+    /**
+     * Color ID for displaying this effect in the round tracker.
+     * Uses EffectColorId enum for consistency.
+     * Defaults to PRIMARY for backward compatibility with old data.
+     */
+    val colorId: EffectColorId = EffectColorId.PRIMARY,
 )
 
